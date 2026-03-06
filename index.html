@@ -11,32 +11,26 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Noto+Sans+TC:wght@400;500;700&display=swap');
-        
         body { font-family: 'Noto Sans TC', sans-serif; background-color: #0f172a; color: #f8fafc; }
         .tech-card { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(10px); border: 1px solid rgba(71, 85, 105, 0.5); border-radius: 16px; transition: all 0.3s ease; }
         .tech-card:hover { border-color: #6366f1; box-shadow: 0 0 20px rgba(99, 102, 241, 0.2); }
         .tech-input { background: rgba(15, 23, 42, 0.8); border: 1px solid #334155; color: #f1f5f9; border-radius: 8px; padding: 10px; font-size: 14px; width: 100%; }
         .tech-input:focus { outline: none; border-color: #818cf8; ring: 1px; ring-color: #818cf8; }
         .stat-value { font-family: 'JetBrains Mono', monospace; font-weight: 700; color: #818cf8; }
-        
         #map { height: 400px; width: 100%; border-radius: 12px; z-index: 10; filter: invert(90%) hue-rotate(180deg) brightness(95%) contrast(90%); }
-        
         .custom-scrollbar::-webkit-scrollbar { width: 5px; height: 5px; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
         label { font-size: 0.75rem; font-weight: 700; color: #94a3b8; text-transform: uppercase; margin-bottom: 0.4rem; display: block; }
-        
         .accordion-content { max-height: 0; overflow: hidden; transition: max-height 0.4s ease-out, padding 0.3s ease; }
         .accordion-active .accordion-content { max-height: 5000px; padding-top: 1.5rem; }
         .chevron-icon { transition: transform 0.3s ease; }
         .accordion-active .chevron-icon { transform: rotate(180deg); }
-
         .mode-btn { border: 1px solid #334155; padding: 4px 12px; border-radius: 6px; font-size: 12px; transition: all 0.2s; }
         .mode-btn.active-case { background: #6366f1; color: white; border-color: #818cf8; }
         .mode-btn.active-power { background: #ef4444; color: white; border-color: #f87171; }
         .mode-btn.active-device { background: #eab308; color: white; border-color: #fde047; }
         .log-item { cursor: pointer; transition: transform 0.2s; }
         .log-item:hover { transform: translateX(5px); background: rgba(99, 102, 241, 0.1); }
-        
         .device-unit { border-left: 4px solid #eab308; background: rgba(234, 179, 8, 0.05); padding: 1.5rem; border-radius: 8px; margin-bottom: 1.5rem; position: relative; }
     </style>
 </head>
@@ -63,7 +57,6 @@
 
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 mb-12">
             <div class="lg:col-span-8 space-y-6">
-                
                 <div class="tech-card p-4">
                     <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-4">
                         <h3 class="font-bold text-indigo-300 tracking-widest text-sm"><i class="fa-solid fa-map-location-dot mr-2"></i>OSM 定位系統</h3>
@@ -87,9 +80,9 @@
                             基本資訊
                         </h3>
                         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                            <div><label>紀錄時間</label><input id="recordTime" readonly class="tech-input bg-slate-900 border-none font-mono text-indigo-400"></div>
-                            <div><label>單位*</label><input list="list-unit" id="unit" class="tech-input" required placeholder="例如：板橋分局"></div>
-                            <div><label>子單位</label><input list="list-subUnit" id="subUnit" class="tech-input" placeholder="轄區或派出所"></div>
+                            <div><label>紀錄時間</label><input id="recordTime" name="recordTime" readonly class="tech-input bg-slate-900 border-none font-mono text-indigo-400"></div>
+                            <div><label>單位*</label><input list="list-unit" id="unit" name="unit" class="tech-input" required placeholder="例如：板橋分局"></div>
+                            <div><label>子單位</label><input list="list-subUnit" id="subUnit" name="subUnit" class="tech-input" placeholder="轄區或派出所"></div>
                         </div>
                     </div>
 
@@ -103,14 +96,14 @@
                         </button>
                         <div class="accordion-content">
                             <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                                <div><label>建置年度/期別</label><input list="list-buildYear" id="buildYear" class="tech-input"></div>
-                                <div><label>機箱類型</label><input list="list-caseType" id="caseType" class="tech-input"></div>
-                                <div><label>收容編號</label><input id="caseNumber" class="tech-input"></div>
-                                <div class="md:col-span-2"><label>機箱安裝位置</label><input id="caseAddress" class="tech-input"></div>
-                                <div><label>路口名稱</label><input id="intersection" class="tech-input"></div>
-                                <div><label>緯度 (機箱)</label><input id="caseLat" class="tech-input font-mono"></div>
-                                <div><label>經度 (機箱)</label><input id="caseLng" class="tech-input font-mono"></div>
-                                <div><label>機箱備註</label><input id="caseRemark" class="tech-input"></div>
+                                <div><label>建置年度/期別</label><input list="list-buildYear" id="buildYear" name="buildYear" class="tech-input"></div>
+                                <div><label>機箱類型</label><input list="list-caseType" id="caseType" name="caseType" class="tech-input"></div>
+                                <div><label>收容編號</label><input id="caseNumber" name="caseNumber" class="tech-input"></div>
+                                <div class="md:col-span-2"><label>機箱安裝位置</label><input id="caseAddress" name="caseAddress" class="tech-input"></div>
+                                <div><label>路口名稱</label><input id="intersection" name="intersection" class="tech-input"></div>
+                                <div><label>緯度 (機箱)</label><input id="caseLat" name="caseLat" class="tech-input font-mono"></div>
+                                <div><label>經度 (機箱)</label><input id="caseLng" name="caseLng" class="tech-input font-mono"></div>
+                                <div><label>機箱備註</label><input id="caseRemark" name="caseRemark" class="tech-input"></div>
                             </div>
                         </div>
                     </div>
@@ -125,11 +118,11 @@
                         </button>
                         <div class="accordion-content">
                             <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                                <div class="md:col-span-2"><label>包燈位置</label><input id="powerAddress" class="tech-input"></div>
-                                <div><label>供電方式</label><input list="list-powerType" id="powerType" class="tech-input"></div>
-                                <div><label>緯度 (電力)</label><input id="powerLat" class="tech-input font-mono"></div>
-                                <div><label>經度 (電力)</label><input id="powerLng" class="tech-input font-mono"></div>
-                                <div><label>電力備註</label><input id="powerRemark" class="tech-input"></div>
+                                <div class="md:col-span-2"><label>包燈位置</label><input id="powerAddress" name="powerAddress" class="tech-input"></div>
+                                <div><label>供電方式</label><input list="list-powerType" id="powerType" name="powerType" class="tech-input"></div>
+                                <div><label>緯度 (電力)</label><input id="powerLat" name="powerLat" class="tech-input font-mono"></div>
+                                <div><label>經度 (電力)</label><input id="powerLng" name="powerLng" class="tech-input font-mono"></div>
+                                <div><label>電力備註</label><input id="powerRemark" name="powerRemark" class="tech-input"></div>
                             </div>
                         </div>
                     </div>
@@ -417,11 +410,15 @@
         document.getElementById('mainForm').onsubmit = (e) => {
             e.preventDefault();
             const editingId = document.getElementById('editingId').value;
+            const scriptURL = 'https://script.google.com/macros/s/AKfycbxwiR6N03WdzqhbXpQWBNS8oalrPp9KQzcgft1if0I0Vok8FId3bmgZKM50FfZHcz2b/exec';
+            const submitBtn = document.getElementById('submitBtn');
+            
             const data = {};
             baseFields.forEach(id => {
                 data[id] = document.getElementById(id).value;
                 if(['unit','subUnit','buildYear','caseType'].includes(id)) saveDatalist(id, data[id]);
             });
+
             data.devices = [];
             document.querySelectorAll('.device-unit').forEach(unit => {
                 data.devices.push({
@@ -438,6 +435,8 @@
                     remark: unit.querySelector('.d-remark').value
                 });
             });
+
+            // 1. 本地儲存邏輯 (LocalStorage)
             if(editingId) {
                 const idx = records.findIndex(r => r._id == editingId);
                 data._id = parseInt(editingId);
@@ -449,8 +448,31 @@
                 records.unshift(data);
             }
             localStorage.setItem('tech_db_v3', JSON.stringify(records));
-            alert("施工紀錄已成功同步！共包含 " + data.devices.length + " 個設備點。");
-            location.reload(); 
+
+            // 2. 同步到 Google 試算表邏輯
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> 同步中...';
+
+            // 將對象轉換為 FormData 格式發送
+            const formData = new FormData();
+            for (const key in data) {
+                if (key === 'devices') {
+                    formData.append(key, JSON.stringify(data[key])); // 設備陣列轉為 JSON 字串
+                } else {
+                    formData.append(key, data[key]);
+                }
+            }
+
+            fetch(scriptURL, { method: 'POST', body: formData })
+            .then(response => {
+                alert("施工紀錄已成功同步至本地與 Google 試算表！\n共包含 " + data.devices.length + " 個設備點。");
+                location.reload();
+            })
+            .catch(error => {
+                console.error('Error!', error.message);
+                alert("本地儲存成功，但同步至 Google 試算表時發生錯誤。\n請檢查網路連線或 Script 權限。");
+                location.reload();
+            });
         };
 
         function editRecord(id) {
@@ -543,7 +565,6 @@
         function exportToExcel() {
             const headers1 = ["A基本資訊", "", "", "B機箱位置資訊", "", "", "", "", "", "", "", "C電力系統增訊", "", "", "", "", "D設備掛載資訊", "", "", "", "", "", "", "", "", "", ""];
             const headers2 = ["紀錄時間", "單位", "子單位", "建置年度/期別", "機箱類型", "收容編號", "機箱安裝位置 ", "路口名稱", "緯度(機箱)", "經度(機箱)", "機箱備註", "包燈位置", "供電方式", "緯度(電力)", "經度(電力)", "電力備註", "設備類型", "設備編號", "設備名稱", "設備安裝位置", "拍攝方位", "緯度(設備)", "經度(設備)", "拍攝類型", "附掛位置", "支架類型", "設備備註"];
-            
             const exportRows = [headers1, headers2];
 
             records.forEach(r => {
@@ -579,15 +600,11 @@
                 const data = new Uint8Array(e.target.result);
                 const workbook = XLSX.read(data, {type: 'array'});
                 const sheet = workbook.Sheets[workbook.SheetNames[0]];
-                // range: 1 表示跳過第一行分組標題，從第二行欄位名稱開始讀取
                 const rawJson = XLSX.utils.sheet_to_json(sheet, {range: 1});
-                
                 const importedRecordsMap = new Map();
 
                 rawJson.forEach(row => {
-                    // 以「紀錄時間」與「收容編號」作為唯一鍵來合併多點位設備
                     const key = `${row["紀錄時間"]}_${row["收容編號"]}`;
-                    
                     if (!importedRecordsMap.has(key)) {
                         importedRecordsMap.set(key, {
                             _id: Date.now() + Math.random(),
@@ -628,7 +645,6 @@
                         });
                     }
                 });
-
                 const newRecords = Array.from(importedRecordsMap.values());
                 records = newRecords.concat(records);
                 localStorage.setItem('tech_db_v3', JSON.stringify(records));
