@@ -1,0 +1,658 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>設備安裝記錄系統 - OSM 戰情版 (一對多增強型)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Noto+Sans+TC:wght@400;500;700&display=swap');
+        
+        body { font-family: 'Noto Sans TC', sans-serif; background-color: #0f172a; color: #f8fafc; }
+        .tech-card { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(10px); border: 1px solid rgba(71, 85, 105, 0.5); border-radius: 16px; transition: all 0.3s ease; }
+        .tech-card:hover { border-color: #6366f1; box-shadow: 0 0 20px rgba(99, 102, 241, 0.2); }
+        .tech-input { background: rgba(15, 23, 42, 0.8); border: 1px solid #334155; color: #f1f5f9; border-radius: 8px; padding: 10px; font-size: 14px; width: 100%; }
+        .tech-input:focus { outline: none; border-color: #818cf8; ring: 1px; ring-color: #818cf8; }
+        .stat-value { font-family: 'JetBrains Mono', monospace; font-weight: 700; color: #818cf8; }
+        
+        #map { height: 400px; width: 100%; border-radius: 12px; z-index: 10; filter: invert(90%) hue-rotate(180deg) brightness(95%) contrast(90%); }
+        
+        .custom-scrollbar::-webkit-scrollbar { width: 5px; height: 5px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
+        label { font-size: 0.75rem; font-weight: 700; color: #94a3b8; text-transform: uppercase; margin-bottom: 0.4rem; display: block; }
+        
+        .accordion-content { max-height: 0; overflow: hidden; transition: max-height 0.4s ease-out, padding 0.3s ease; }
+        .accordion-active .accordion-content { max-height: 5000px; padding-top: 1.5rem; }
+        .chevron-icon { transition: transform 0.3s ease; }
+        .accordion-active .chevron-icon { transform: rotate(180deg); }
+
+        .mode-btn { border: 1px solid #334155; padding: 4px 12px; border-radius: 6px; font-size: 12px; transition: all 0.2s; }
+        .mode-btn.active-case { background: #6366f1; color: white; border-color: #818cf8; }
+        .mode-btn.active-power { background: #ef4444; color: white; border-color: #f87171; }
+        .mode-btn.active-device { background: #eab308; color: white; border-color: #fde047; }
+        .log-item { cursor: pointer; transition: transform 0.2s; }
+        .log-item:hover { transform: translateX(5px); background: rgba(99, 102, 241, 0.1); }
+        
+        .device-unit { border-left: 4px solid #eab308; background: rgba(234, 179, 8, 0.05); padding: 1.5rem; border-radius: 8px; margin-bottom: 1.5rem; position: relative; }
+    </style>
+</head>
+<body class="p-3 md:p-8">
+
+    <div class="max-w-7xl mx-auto">
+        <header class="flex flex-col md:flex-row justify-between items-center mb-8 gap-6 border-b border-slate-700 pb-6 text-center md:text-left">
+            <div>
+                <h1 class="text-2xl md:text-3xl font-black bg-clip-text text-transparent bg-gradient-to-r from-indigo-400 to-cyan-400 tracking-wider">
+                    <i class="fa-solid fa-screwdriver-wrench mr-3"></i>設備安裝施工管理 <span class="block md:inline-block text-xs bg-slate-800 text-slate-400 px-2 py-1 rounded mt-2 md:ml-2">OSM 戰情版</span>
+                </h1>
+                <p class="text-slate-400 text-sm mt-1 uppercase tracking-widest">Installation Management System</p>
+            </div>
+            <div class="flex gap-3 w-full md:w-auto">
+                <button onclick="exportToExcel()" class="flex-grow md:flex-grow-0 bg-indigo-600 hover:bg-indigo-500 text-white px-5 py-3 md:py-2 rounded-lg text-sm font-bold transition flex items-center justify-center">
+                    <i class="fa-solid fa-file-excel mr-2"></i>導出
+                </button>
+                <label class="flex-grow md:flex-grow-0 bg-slate-700 hover:bg-slate-600 text-white px-5 py-3 md:py-2 rounded-lg text-sm font-bold transition cursor-pointer flex items-center justify-center mb-0">
+                    <i class="fa-solid fa-upload mr-2"></i>導入
+                    <input type="file" class="hidden" onchange="importFromExcel(event)">
+                </label>
+            </div>
+        </header>
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 mb-12">
+            <div class="lg:col-span-8 space-y-6">
+                
+                <div class="tech-card p-4">
+                    <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-4">
+                        <h3 class="font-bold text-indigo-300 tracking-widest text-sm"><i class="fa-solid fa-map-location-dot mr-2"></i>OSM 定位系統</h3>
+                        <div class="flex flex-wrap gap-2 items-center w-full md:w-auto">
+                            <span class="text-[10px] text-slate-500 mr-2">模式：</span>
+                            <button id="btn-mode-case" onclick="setMapMode('case')" class="flex-grow md:flex-grow-0 mode-btn active-case">機箱</button>
+                            <button id="btn-mode-power" onclick="setMapMode('power')" class="flex-grow md:flex-grow-0 mode-btn">電力</button>
+                            <button id="btn-mode-device" onclick="setMapMode('device')" class="flex-grow md:flex-grow-0 mode-btn">設備</button>
+                            <button onclick="getCurrentLocation()" class="text-[10px] bg-indigo-600/20 text-indigo-400 border border-indigo-500/30 px-3 py-1 rounded hover:bg-indigo-600/40">目前位置</button>
+                        </div>
+                    </div>
+                    <div id="map"></div>
+                </div>
+
+                <form id="mainForm" class="space-y-4">
+                    <input type="hidden" id="editingId">
+                    
+                    <div class="tech-card p-6 border-l-4 border-indigo-500">
+                        <h3 class="text-indigo-400 font-bold mb-6 flex items-center">
+                            <span class="bg-indigo-500 text-slate-900 w-6 h-6 rounded-full flex items-center justify-center mr-2 text-xs">A</span>
+                            基本資訊
+                        </h3>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                            <div><label>紀錄時間</label><input id="recordTime" readonly class="tech-input bg-slate-900 border-none font-mono text-indigo-400"></div>
+                            <div><label>單位</label><input list="list-unit" id="unit" class="tech-input" required placeholder="例如：板橋分局"></div>
+                            <div><label>子單位</label><input list="list-subUnit" id="subUnit" class="tech-input" placeholder="轄區或派出所"></div>
+                        </div>
+                    </div>
+
+                    <div class="tech-card p-6 border-l-4 border-slate-500 accordion-section" id="section-B">
+                        <button type="button" onclick="toggleAccordion('section-B')" class="w-full flex justify-between items-center group">
+                            <h3 class="text-slate-300 font-bold flex items-center group-hover:text-indigo-400 transition">
+                                <span class="bg-slate-500 text-slate-900 w-6 h-6 rounded-full flex items-center justify-center mr-2 text-xs">B</span>
+                                機箱位置資訊
+                            </h3>
+                            <i class="fa-solid fa-chevron-down chevron-icon text-slate-500"></i>
+                        </button>
+                        <div class="accordion-content">
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                <div><label>建置年度/期別</label><input list="list-buildYear" id="buildYear" class="tech-input"></div>
+                                <div><label>機箱類型</label><input list="list-caseType" id="caseType" class="tech-input"></div>
+                                <div><label>收容編號</label><input id="caseNumber" class="tech-input"></div>
+                                <div class="md:col-span-2"><label>機箱安裝位置</label><input id="caseAddress" class="tech-input"></div>
+                                <div><label>路口名稱</label><input id="intersection" class="tech-input"></div>
+                                <div><label>緯度 (機箱)</label><input id="caseLat" class="tech-input font-mono"></div>
+                                <div><label>經度 (機箱)</label><input id="caseLng" class="tech-input font-mono"></div>
+                                <div><label>機箱備註</label><input id="caseRemark" class="tech-input"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="tech-card p-6 border-l-4 border-emerald-500 accordion-section" id="section-C">
+                        <button type="button" onclick="toggleAccordion('section-C')" class="w-full flex justify-between items-center group">
+                            <h3 class="text-emerald-400 font-bold flex items-center text-left">
+                                <span class="bg-emerald-500 text-slate-900 w-6 h-6 rounded-full flex items-center justify-center mr-2 text-xs shrink-0">C</span>
+                                電力系統資訊
+                            </h3>
+                            <i class="fa-solid fa-chevron-down chevron-icon text-emerald-600"></i>
+                        </button>
+                        <div class="accordion-content">
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                <div class="md:col-span-2"><label>包燈位置</label><input id="powerAddress" class="tech-input"></div>
+                                <div><label>供電方式</label><input list="list-powerType" id="powerType" class="tech-input"></div>
+                                <div><label>緯度 (電力)</label><input id="powerLat" class="tech-input font-mono"></div>
+                                <div><label>經度 (電力)</label><input id="powerLng" class="tech-input font-mono"></div>
+                                <div><label>電力備註</label><input id="powerRemark" class="tech-input"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="tech-card p-6 border-l-4 border-cyan-500 accordion-section" id="section-D">
+                        <div class="w-full flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-3">
+                            <h3 class="text-cyan-400 font-bold flex items-center">
+                                <span class="bg-cyan-500 text-slate-900 w-6 h-6 rounded-full flex items-center justify-center mr-2 text-xs">D</span>
+                                設備掛載資訊
+                            </h3>
+                            <button type="button" onclick="addNewDeviceRow()" class="w-full md:w-auto bg-cyan-600 hover:bg-cyan-500 text-white text-xs px-4 py-2 rounded-lg transition">
+                                <i class="fa-solid fa-plus mr-1"></i> 新增設備點位
+                            </button>
+                        </div>
+                        <div id="device-container" class="space-y-4"></div>
+                    </div>
+
+                    <div class="flex flex-col md:flex-row gap-4">
+                        <button type="submit" id="submitBtn" class="w-full bg-gradient-to-r from-indigo-600 to-cyan-600 hover:from-indigo-500 hover:to-cyan-500 text-white font-black py-4 rounded-xl shadow-xl transition transform active:scale-95 flex items-center justify-center gap-3 order-1 md:order-none">
+                            <i class="fa-solid fa-floppy-disk"></i> 保存安裝記錄 (SYNC)
+                        </button>
+                        <button type="button" onclick="resetForm()" class="w-full bg-slate-700 hover:bg-slate-600 text-white font-black py-4 rounded-xl shadow-xl transition flex items-center justify-center gap-3">
+                            <i class="fa-solid fa-eraser"></i> 清除資訊
+                        </button>
+                        <button type="button" id="cancelBtn" onclick="resetForm()" class="hidden w-full md:w-auto bg-slate-700 hover:bg-slate-600 text-slate-300 px-8 py-4 rounded-xl font-bold transition flex items-center justify-center gap-2">
+                            <i class="fa-solid fa-xmark"></i> 取消
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <div class="lg:col-span-4">
+                <div class="tech-card p-6 flex flex-col h-[500px] lg:h-full">
+                    <h3 class="font-bold text-indigo-300 mb-6 flex justify-between items-center tracking-widest">
+                        <span><i class="fa-solid fa-clock-rotate-left mr-2"></i>即時快訊</span>
+                        <button onclick="clearLogs()" class="text-[10px] text-rose-400 border border-rose-900 px-2 py-1 rounded hover:bg-rose-900/20">清空</button>
+                    </h3>
+                    <div id="log-stream" class="space-y-4 flex-grow overflow-y-auto custom-scrollbar pr-2"></div>
+                </div>
+            </div>
+        </div>
+
+        <section class="mt-12 border-t border-slate-700 pt-10">
+            <div class="flex flex-col md:flex-row items-center gap-4 mb-8">
+                <div class="flex items-center gap-4">
+                    <div class="h-8 w-2 bg-gradient-to-b from-indigo-500 to-cyan-500"></div>
+                    <h2 class="text-2xl font-black uppercase tracking-tighter">數據儀表板</h2>
+                </div>
+                <div class="flex items-center gap-2 w-full md:w-auto md:ml-auto">
+                    <input type="date" id="dash-date-filter" list="list-recorded-dates" class="tech-input text-xs flex-grow md:flex-grow-0" onchange="updateDashboard()">
+                    <datalist id="list-recorded-dates"></datalist>
+                </div>
+            </div>
+            
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 mb-8">
+                <div class="tech-card p-4 md:p-6 border-b-4 border-indigo-500 text-center">
+                    <div class="text-slate-500 text-[10px] font-bold mb-1">統計日期</div>
+                    <div id="stat-date-display" class="stat-value text-sm md:text-xl">---</div>
+                </div>
+                <div class="tech-card p-4 md:p-6 border-b-4 border-emerald-500 text-center">
+                    <div class="text-slate-500 text-[10px] font-bold mb-1">新設機箱</div>
+                    <div id="stat-new-cabinet" class="stat-value text-2xl md:text-4xl">0</div>
+                </div>
+                <div class="tech-card p-4 md:p-6 border-b-4 border-amber-500 text-center">
+                    <div class="text-slate-500 text-[10px] font-bold mb-1">既有機箱</div>
+                    <div id="stat-old-cabinet" class="stat-value text-2xl md:text-4xl">0</div>
+                </div>
+                <div class="tech-card p-4 md:p-6 border-b-4 border-cyan-500 text-center">
+                    <div class="text-slate-500 text-[10px] font-bold mb-1">設備總數</div>
+                    <div id="stat-camera-count" class="stat-value text-2xl md:text-4xl">0</div>
+                </div>
+            </div>
+
+            <div class="tech-card overflow-hidden">
+                <div class="overflow-x-auto custom-scrollbar">
+                    <table class="w-full text-left text-sm min-w-[600px]">
+                        <thead class="bg-slate-900/80 text-slate-500 text-[10px] uppercase">
+                            <tr>
+                                <th class="p-4">單位 / 子單位</th>
+                                <th class="p-4">年度期別</th>
+                                <th class="p-4 text-center">新機箱</th>
+                                <th class="p-4 text-center">舊機箱</th>
+                                <th class="p-4 text-center">設備數</th>
+                            </tr>
+                        </thead>
+                        <tbody id="dash-matrix-body" class="divide-y divide-slate-800"></tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <datalist id="list-unit"></datalist><datalist id="list-subUnit"></datalist>
+    <datalist id="list-buildYear"></datalist><datalist id="list-caseType"><option value="新機箱"><option value="既有機箱"></datalist>
+    <datalist id="list-powerType"></datalist><datalist id="list-deviceType"><option value="全景攝影機"><option value="球型攝影機"><option value="車牌攝影機"></datalist>
+    <datalist id="list-shootType"></datalist><datalist id="list-attachPosition"></datalist><datalist id="list-bracketType"></datalist>
+
+    <script>
+        let records = JSON.parse(localStorage.getItem('tech_db_v3')) || [];
+        const baseFields = ['recordTime', 'unit', 'subUnit', 'buildYear', 'caseType', 'caseNumber', 'caseAddress', 'intersection', 'caseLat', 'caseLng', 'caseRemark', 'powerAddress', 'powerType', 'powerLat', 'powerLng', 'powerRemark'];
+        let map, currentMarkerLayer;
+        let mapMode = 'case'; 
+
+        window.onload = () => {
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('dash-date-filter').value = today;
+            updateTime();
+            renderLogs();
+            updateDashboard();
+            loadDatalists();
+            initOSM(); 
+        };
+
+        function toggleAccordion(id) {
+            document.getElementById(id).classList.toggle('accordion-active');
+        }
+
+        function updateTime() {
+            if(!document.getElementById('editingId').value) {
+                const now = new Date();
+                document.getElementById('recordTime').value = now.getFullYear() + '/' + (now.getMonth()+1) + '/' + now.getDate() + ' ' + now.toLocaleTimeString('zh-TW', {hour12:false});
+            }
+            setTimeout(updateTime, 1000);
+        }
+
+        function setMapMode(mode) {
+            mapMode = mode;
+            document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active-case', 'active-power', 'active-device'));
+            document.getElementById(`btn-mode-${mode}`).classList.add(`active-${mode}`);
+        }
+
+        function initOSM() {
+            map = L.map('map').setView([25.0339, 121.5644], 15);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; OpenStreetMap contributors'
+            }).addTo(map);
+            currentMarkerLayer = L.layerGroup().addTo(map);
+
+            map.on('click', function(e) {
+                const lat = e.latlng.lat.toFixed(6);
+                const lng = e.latlng.lng.toFixed(6);
+
+                if(mapMode === 'device') {
+                    fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&accept-language=zh-TW`)
+                    .then(res => res.json())
+                    .then(data => {
+                        let formattedAddr = "";
+                        if(data && data.address) {
+                            const addr = data.address;
+                            const district = addr.suburb || addr.township || addr.district || "";
+                            const road = addr.road || "";
+                            let houseNum = addr.house_number || "";
+                            if (houseNum && !houseNum.includes("號")) houseNum += "號";
+                            formattedAddr = `${district}${road}${houseNum}`.replace(/, /g, "");
+                        }
+                        addNewDeviceRow({ lat: lat, lng: lng, address: formattedAddr || data.display_name });
+                        document.getElementById('section-D').classList.add('accordion-active');
+                        refreshMarkers();
+                    });
+                } else {
+                    const prefix = mapMode;
+                    if(prefix === 'case') document.getElementById('section-B').classList.add('accordion-active');
+                    if(prefix === 'power') document.getElementById('section-C').classList.add('accordion-active');
+
+                    document.getElementById(`${prefix}Lat`).value = lat;
+                    document.getElementById(`${prefix}Lng`).value = lng;
+                    fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&accept-language=zh-TW`)
+                    .then(res => res.json())
+                    .then(data => {
+                        if(data && data.address) {
+                            const addr = data.address;
+                            const district = addr.suburb || addr.township || addr.district || "";
+                            const road = addr.road || "";
+                            let houseNum = addr.house_number || "";
+                            if (houseNum && !houseNum.includes("號")) houseNum += "號";
+                            const formattedAddr = `${district}${road}${houseNum}`.replace(/, /g, "");
+                            document.getElementById(`${prefix}Address`).value = formattedAddr || data.display_name;
+                        }
+                    });
+                    refreshMarkers();
+                }
+            });
+        }
+
+        function addNewDeviceRow(data = {}) {
+            const container = document.getElementById('device-container');
+            const rowId = 'dev_' + Date.now();
+            const div = document.createElement('div');
+            div.className = "device-unit tech-card";
+            div.id = rowId;
+            div.innerHTML = `
+                <div class="flex justify-between items-center mb-4 border-b border-slate-700 pb-2">
+                    <span class="text-cyan-400 font-bold text-xs"><i class="fa-solid fa-camera mr-2"></i>設備項目</span>
+                    <button type="button" onclick="removeDeviceRow('${rowId}')" class="text-rose-400 hover:text-rose-300 text-[10px] uppercase font-bold">移除此設備</button>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div><label>設備類型</label><input list="list-deviceType" class="tech-input d-type" value="${data.type || ''}"></div>
+                    <div><label>設備編號</label><input class="tech-input d-number" value="${data.number || ''}"></div>
+                    <div><label>設備名稱</label><input class="tech-input d-name" value="${data.name || ''}"></div>
+                    <div class="md:col-span-2">
+                        <label>設備安裝位置</label>
+                        <div class="flex gap-2">
+                            <input class="tech-input d-address flex-grow" value="${data.address || ''}">
+                            <button type="button" onclick="syncCaseToDev('${rowId}')" class="bg-slate-700 hover:bg-slate-600 px-3 rounded text-[10px] whitespace-nowrap border border-slate-500">同機箱</button>
+                        </div>
+                    </div>
+                    <div><label>拍攝方位</label>
+                        <select class="tech-input d-direction">
+                            <option value="">請選擇</option>
+                            <option value="北" ${data.direction === '北' ? 'selected' : ''}>北</option>
+                            <option value="北北東" ${data.direction === '北北東' ? 'selected' : ''}>北北東</option>
+                            <option value="東北" ${data.direction === '東北' ? 'selected' : ''}>東北</option>
+                            <option value="東北東" ${data.direction === '東北東' ? 'selected' : ''}>東北東</option>
+                            <option value="東" ${data.direction === '東' ? 'selected' : ''}>東</option>
+                            <option value="東南東" ${data.direction === '東南東' ? 'selected' : ''}>東南東</option>
+                            <option value="東南" ${data.direction === '東南' ? 'selected' : ''}>東南</option>
+                            <option value="南南東" ${data.direction === '南南東' ? 'selected' : ''}>南南東</option>
+                            <option value="南" ${data.direction === '南' ? 'selected' : ''}>南</option>
+                            <option value="南南西" ${data.direction === '南南西' ? 'selected' : ''}>南南西</option>
+                            <option value="西南" ${data.direction === '西南' ? 'selected' : ''}>西南</option>
+                            <option value="西南西" ${data.direction === '西南西' ? 'selected' : ''}>西南西</option>
+                            <option value="西" ${data.direction === '西' ? 'selected' : ''}>西</option>
+                            <option value="西北西" ${data.direction === '西北西' ? 'selected' : ''}>西北西</option>
+                            <option value="西北" ${data.direction === '西北' ? 'selected' : ''}>西北</option>
+                            <option value="北北西" ${data.direction === '北北西' ? 'selected' : ''}>北北西</option>
+                        </select>
+                    </div>
+                    <div><label>緯度 (設備)</label><input class="tech-input d-lat font-mono" value="${data.lat || ''}" onchange="refreshMarkers()"></div>
+                    <div><label>經度 (設備)</label><input class="tech-input d-lng font-mono" value="${data.lng || ''}" onchange="refreshMarkers()"></div>
+                    <div><label>拍攝類型</label><input list="list-shootType" class="tech-input d-shootType" value="${data.shootType || ''}"></div>
+                    <div><label>附掛位置</label><input list="list-attachPosition" class="tech-input d-attachPosition" value="${data.attachPosition || ''}"></div>
+                    <div><label>支架類型</label><input list="list-bracketType" class="tech-input d-bracketType" value="${data.bracketType || ''}"></div>
+                    <div class="md:col-span-3"><label>設備備註</label><input class="tech-input d-remark" value="${data.remark || ''}"></div>
+                </div>
+            `;
+            container.appendChild(div);
+            refreshMarkers();
+        }
+
+        function removeDeviceRow(id) {
+            document.getElementById(id).remove();
+            refreshMarkers();
+        }
+
+        function syncCaseToDev(rowId) {
+            const row = document.getElementById(rowId);
+            row.querySelector('.d-address').value = document.getElementById('caseAddress').value;
+            row.querySelector('.d-lat').value = document.getElementById('caseLat').value;
+            row.querySelector('.d-lng').value = document.getElementById('caseLng').value;
+            refreshMarkers();
+        }
+
+        function refreshMarkers() {
+            currentMarkerLayer.clearLayers();
+            const colors = { case: '#00D4FF', power: '#FF3131', device: '#F28705' };
+            ['case', 'power'].forEach(type => {
+                const lat = document.getElementById(`${type}Lat`).value;
+                const lng = document.getElementById(`${type}Lng`).value;
+                if(lat && lng) addPoint(lat, lng, colors[type], type === 'case' ? '機箱' : '電力');
+            });
+            document.querySelectorAll('.device-unit').forEach(unit => {
+                const lat = unit.querySelector('.d-lat').value;
+                const lng = unit.querySelector('.d-lng').value;
+                const name = unit.querySelector('.d-name').value || '設備';
+                if(lat && lng) addPoint(lat, lng, colors.device, name);
+            });
+        }
+
+        function addPoint(lat, lng, color, title) {
+            const icon = L.divIcon({
+                html: `<i class="fa-solid fa-location-dot" style="color: ${color}; font-size: 24px;"></i>`,
+                className: 'custom-div-icon', iconSize: [24, 24], iconAnchor: [12, 24]
+            });
+            L.marker([lat, lng], {icon}).addTo(currentMarkerLayer).bindPopup(title);
+        }
+
+        function getCurrentLocation() {
+            map.locate({setView: true, maxZoom: 18});
+            map.on('locationfound', function(e) {
+                L.circle(e.latlng, e.accuracy).addTo(map);
+                L.marker(e.latlng).addTo(map).bindPopup("您的目前位置").openPopup();
+            });
+        }
+
+        document.getElementById('mainForm').onsubmit = (e) => {
+            e.preventDefault();
+            const editingId = document.getElementById('editingId').value;
+            const data = {};
+            baseFields.forEach(id => {
+                data[id] = document.getElementById(id).value;
+                if(['unit','subUnit','buildYear','caseType'].includes(id)) saveDatalist(id, data[id]);
+            });
+            data.devices = [];
+            document.querySelectorAll('.device-unit').forEach(unit => {
+                data.devices.push({
+                    type: unit.querySelector('.d-type').value,
+                    number: unit.querySelector('.d-number').value,
+                    name: unit.querySelector('.d-name').value,
+                    address: unit.querySelector('.d-address').value,
+                    direction: unit.querySelector('.d-direction').value,
+                    lat: unit.querySelector('.d-lat').value,
+                    lng: unit.querySelector('.d-lng').value,
+                    shootType: unit.querySelector('.d-shootType').value,
+                    attachPosition: unit.querySelector('.d-attachPosition').value,
+                    bracketType: unit.querySelector('.d-bracketType').value,
+                    remark: unit.querySelector('.d-remark').value
+                });
+            });
+            if(editingId) {
+                const idx = records.findIndex(r => r._id == editingId);
+                data._id = parseInt(editingId);
+                data._date = records[idx]._date;
+                records[idx] = data;
+            } else {
+                data._id = Date.now();
+                data._date = new Date().toISOString().split('T')[0];
+                records.unshift(data);
+            }
+            localStorage.setItem('tech_db_v3', JSON.stringify(records));
+            alert("施工紀錄已成功同步！共包含 " + data.devices.length + " 個設備點。");
+            location.reload(); 
+        };
+
+        function editRecord(id) {
+            const record = records.find(r => r._id == id);
+            if(!record) return;
+            resetForm(); 
+            document.getElementById('editingId').value = id;
+            document.getElementById('submitBtn').innerHTML = `<i class="fa-solid fa-pen-to-square"></i> 更新紀錄 (UPDATE)`;
+            document.getElementById('cancelBtn').classList.remove('hidden');
+            baseFields.forEach(fid => {
+                document.getElementById(fid).value = record[fid] || '';
+            });
+            if(record.devices) {
+                record.devices.forEach(dev => addNewDeviceRow(dev));
+                document.getElementById('section-D').classList.add('accordion-active');
+            }
+            if(record.caseNumber) document.getElementById('section-B').classList.add('accordion-active');
+            if(record.powerAddress) document.getElementById('section-C').classList.add('accordion-active');
+            refreshMarkers();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function updateDashboard() {
+            const targetDate = document.getElementById('dash-date-filter').value;
+            document.getElementById('stat-date-display').innerText = targetDate;
+            const recordedDates = [...new Set(records.map(r => r._date))].sort().reverse();
+            const dateListEl = document.getElementById('list-recorded-dates');
+            dateListEl.innerHTML = recordedDates.map(d => `<option value="${d}">`).join('');
+            const dayRecords = records.filter(r => r._date === targetDate);
+            const newCount = dayRecords.filter(r => r.caseType?.includes('新')).length;
+            const oldCount = dayRecords.filter(r => r.caseType?.match(/既|舊/)).length;
+            const totalDevices = dayRecords.reduce((sum, r) => sum + (r.devices ? r.devices.length : 0), 0);
+            document.getElementById('stat-new-cabinet').innerText = newCount;
+            document.getElementById('stat-old-cabinet').innerText = oldCount;
+            document.getElementById('stat-camera-count').innerText = totalDevices;
+            const matrix = {};
+            dayRecords.forEach(r => {
+                const unitDisplay = `${r.unit || '未定義'} / ${r.subUnit || '未定義'}`;
+                const key = `${unitDisplay}||${r.buildYear || '未定義'}`;
+                if(!matrix[key]) matrix[key] = { newCab: 0, oldCab: 0, cam: 0, unitFull: unitDisplay, year: r.buildYear };
+                if(r.caseType?.includes('新')) matrix[key].newCab++;
+                if(r.caseType?.match(/既|舊/)) matrix[key].oldCab++;
+                matrix[key].cam += (r.devices ? r.devices.length : 0);
+            });
+            const body = document.getElementById('dash-matrix-body');
+            body.innerHTML = Object.values(matrix).length ? Object.values(matrix).map(m => `
+                <tr class="hover:bg-slate-800/50">
+                    <td class="p-4 text-indigo-300 font-bold">${m.unitFull}</td>
+                    <td class="p-4 text-slate-400 font-mono text-xs">${m.year || '---'}</td>
+                    <td class="p-4 text-center text-emerald-400 font-mono">${m.newCab}</td>
+                    <td class="p-4 text-center text-amber-400 font-mono">${m.oldCab}</td>
+                    <td class="p-4 text-center text-cyan-400 font-mono">${m.cam}</td>
+                </tr>
+            `).join('') : `<tr><td colspan="5" class="p-10 text-center text-slate-600 italic">本日暫無數據</td></tr>`;
+        }
+
+        function renderLogs() {
+            const stream = document.getElementById('log-stream');
+            stream.innerHTML = records.slice(0, 15).map(r => `
+                <div onclick="editRecord(${r._id})" class="log-item p-4 tech-card bg-slate-900/40 border-l-2 border-indigo-500 mb-2">
+                    <div class="flex justify-between text-[9px] text-slate-500 font-mono mb-1">
+                        <span>ID: ${r._id}</span>
+                        <span>${r.recordTime}</span>
+                    </div>
+                    <div class="text-sm font-bold text-slate-200">${r.caseNumber || '未編號機箱'} <span class="text-[10px] font-normal text-indigo-400 ml-2">設備數: ${r.devices ? r.devices.length : 0}</span></div>
+                    <div class="text-[10px] text-slate-500 truncate">${r.caseAddress || '無地址資訊'}</div>
+                </div>
+            `).join('');
+        }
+
+        function saveDatalist(key, val) {
+            if(!val) return;
+            let list = JSON.parse(localStorage.getItem(`tech_opt_${key}`)) || [];
+            if(!list.includes(val)) {
+                list.push(val);
+                localStorage.setItem(`tech_opt_${key}`, JSON.stringify(list));
+                loadDatalists();
+            }
+        }
+
+        function loadDatalists() {
+            const keys = ['unit','subUnit','buildYear','caseType','powerType','deviceType','shootType','attachPosition','bracketType'];
+            keys.forEach(k => {
+                const list = JSON.parse(localStorage.getItem(`tech_opt_${k}`)) || [];
+                const dl = document.getElementById(`list-${k}`);
+                if(dl) dl.innerHTML = list.map(i => `<option value="${i}">`).join('');
+            });
+        }
+
+        function exportToExcel() {
+            const headers1 = ["A基本資訊", "", "", "B機箱位置資訊", "", "", "", "", "", "", "", "C電力系統增訊", "", "", "", "", "D設備掛載資訊", "", "", "", "", "", "", "", "", "", ""];
+            const headers2 = ["紀錄時間", "單位", "子單位", "建置年度/期別", "機箱類型", "收容編號", "機箱安裝位置 ", "路口名稱", "緯度(機箱)", "經度(機箱)", "機箱備註", "包燈位置", "供電方式", "緯度(電力)", "經度(電力)", "電力備註", "設備類型", "設備編號", "設備名稱", "設備安裝位置", "拍攝方位", "緯度(設備)", "經度(設備)", "拍攝類型", "附掛位置", "支架類型", "設備備註"];
+            
+            const exportRows = [headers1, headers2];
+
+            records.forEach(r => {
+                const baseRow = [
+                    r.recordTime || "", r.unit || "", r.subUnit || "",
+                    r.buildYear || "", r.caseType || "", r.caseNumber || "", r.caseAddress || "", r.intersection || "", r.caseLat || "", r.caseLng || "", r.caseRemark || "",
+                    r.powerAddress || "", r.powerType || "", r.powerLat || "", r.powerLng || "", r.powerRemark || ""
+                ];
+
+                if (r.devices && r.devices.length > 0) {
+                    r.devices.forEach(d => {
+                        const devRow = [
+                            d.type || "", d.number || "", d.name || "", d.address || "", d.direction || "", d.lat || "", d.lng || "", d.shootType || "", d.attachPosition || "", d.bracketType || "", d.remark || ""
+                        ];
+                        exportRows.push([...baseRow, ...devRow]);
+                    });
+                } else {
+                    const emptyDevRow = Array(11).fill("");
+                    exportRows.push([...baseRow, ...emptyDevRow]);
+                }
+            });
+
+            const ws = XLSX.utils.aoa_to_sheet(exportRows);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "MasterData");
+            XLSX.writeFile(wb, `EQUIP_REPORT_${new Date().getTime()}.xlsx`);
+        }
+
+        function importFromExcel(event) {
+            const file = event.target.files[0];
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const data = new Uint8Array(e.target.result);
+                const workbook = XLSX.read(data, {type: 'array'});
+                const sheet = workbook.Sheets[workbook.SheetNames[0]];
+                // range: 1 表示跳過第一行分組標題，從第二行欄位名稱開始讀取
+                const rawJson = XLSX.utils.sheet_to_json(sheet, {range: 1});
+                
+                const importedRecordsMap = new Map();
+
+                rawJson.forEach(row => {
+                    // 以「紀錄時間」與「收容編號」作為唯一鍵來合併多點位設備
+                    const key = `${row["紀錄時間"]}_${row["收容編號"]}`;
+                    
+                    if (!importedRecordsMap.has(key)) {
+                        importedRecordsMap.set(key, {
+                            _id: Date.now() + Math.random(),
+                            _date: row["紀錄時間"] ? row["紀錄時間"].split(' ')[0].replace(/\//g, '-') : new Date().toISOString().split('T')[0],
+                            recordTime: row["紀錄時間"] || "",
+                            unit: row["單位"] || "",
+                            subUnit: row["子單位"] || "",
+                            buildYear: row["建置年度/期別"] || "",
+                            caseType: row["機箱類型"] || "",
+                            caseNumber: row["收容編號"] || "",
+                            caseAddress: row["機箱安裝位置 "] || "",
+                            intersection: row["路口名稱"] || "",
+                            caseLat: row["緯度(機箱)"] || "",
+                            caseLng: row["經度(機箱)"] || "",
+                            caseRemark: row["機箱備註"] || "",
+                            powerAddress: row["包燈位置"] || "",
+                            powerType: row["供電方式"] || "",
+                            powerLat: row["緯度(電力)"] || "",
+                            powerLng: row["經度(電力)"] || "",
+                            powerRemark: row["電力備註"] || "",
+                            devices: []
+                        });
+                    }
+
+                    if (row["設備類型"]) {
+                        importedRecordsMap.get(key).devices.push({
+                            type: row["設備類型"] || "",
+                            number: row["設備編號"] || "",
+                            name: row["設備名稱"] || "",
+                            address: row["設備安裝位置"] || "",
+                            direction: row["拍攝方位"] || "",
+                            lat: row["緯度(設備)"] || "",
+                            lng: row["經度(設備)"] || "",
+                            shootType: row["拍攝類型"] || "",
+                            attachPosition: row["附掛位置"] || "",
+                            bracketType: row["支架類型"] || "",
+                            remark: row["設備備註"] || ""
+                        });
+                    }
+                });
+
+                const newRecords = Array.from(importedRecordsMap.values());
+                records = newRecords.concat(records);
+                localStorage.setItem('tech_db_v3', JSON.stringify(records));
+                location.reload();
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        function clearLogs() { 
+            if(confirm("警告：即將清空資料庫！")) { 
+                localStorage.removeItem('tech_db_v3');
+                location.reload(); 
+            } 
+        }
+
+        function resetForm() {
+            document.getElementById('mainForm').reset();
+            document.getElementById('device-container').innerHTML = '';
+            document.getElementById('editingId').value = '';
+            document.getElementById('submitBtn').innerHTML = `<i class="fa-solid fa-floppy-disk"></i> 保存安裝記錄 (SYNC)`;
+            document.getElementById('cancelBtn').classList.add('hidden');
+            currentMarkerLayer.clearLayers();
+            document.querySelectorAll('.accordion-section').forEach(s => s.classList.remove('accordion-active'));
+        }
+    </script>
+</body>
+</html>
