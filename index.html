@@ -17,7 +17,7 @@
         .tech-input { background: rgba(15, 23, 42, 0.8); border: 1px solid #334155; color: #f1f5f9; border-radius: 8px; padding: 10px; font-size: 14px; width: 100%; }
         .tech-input:focus { outline: none; border-color: #818cf8; ring: 1px; ring-color: #818cf8; }
         .stat-value { font-family: 'JetBrains Mono', monospace; font-weight: 700; color: #818cf8; }
-        #map { height: 400px; width: 100%; border-radius: 12px; z-index: 10; filter: invert(90%) hue-rotate(180deg) brightness(95%) contrast(90%); }
+        #map { height: 400px; width: 100%; border-radius: 12px; z-index: 10; border: 1px solid #cbd5e1 brightness(95%) contrast(90%); }
         .custom-scrollbar::-webkit-scrollbar { width: 5px; height: 5px; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
         label { font-size: 0.75rem; font-weight: 700; color: #94a3b8; text-transform: uppercase; margin-bottom: 0.4rem; display: block; }
@@ -532,13 +532,17 @@
         function renderLogs() {
             const stream = document.getElementById('log-stream');
             stream.innerHTML = records.slice(0, 15).map(r => `
-                <div onclick="editRecord(${r._id})" class="log-item p-4 tech-card bg-slate-900/40 border-l-2 border-indigo-500 mb-2">
+                <div onclick="editRecord(${r._id})" class="log-item p-4 tech-card bg-slate-900/40 border-l-2 border-indigo-500 mb-2 relative group">
                     <div class="flex justify-between text-[9px] text-slate-500 font-mono mb-1">
                         <span>ID: ${r._id}</span>
                         <span>${r.recordTime}</span>
                     </div>
                     <div class="text-sm font-bold text-slate-200">${r.caseNumber || '未編號機箱'} <span class="text-[10px] font-normal text-indigo-400 ml-2">設備數: ${r.devices ? r.devices.length : 0}</span></div>
-                    <div class="text-[10px] text-slate-500 truncate">${r.caseAddress || '無地址資訊'}</div>
+                    <div class="text-[10px] text-slate-500 truncate pr-8">${r.caseAddress || '無地址資訊'}</div>
+                    
+                    <button onclick="event.stopPropagation(); deleteRecord(${r._id})" class="absolute top-4 right-4 text-rose-500 hover:text-rose-400 p-9 transition-colors">
+                        <i class="fa-solid fa-trash-can"></i>
+                    </button>
                 </div>
             `).join('');
         }
@@ -653,6 +657,24 @@
             reader.readAsArrayBuffer(file);
         }
 
+function deleteRecord(id) {
+            if(confirm("確定要刪除這筆紀錄嗎？")) {
+                // 過濾掉該 ID 的紀錄
+                records = records.filter(r => r._id != id);
+                // 更新 LocalStorage
+                localStorage.setItem('tech_db_v3', JSON.stringify(records));
+                // 重新渲染列表、儀表板與地圖
+                renderLogs();
+                updateDashboard();
+                if (typeof refreshMarkers === 'function') refreshMarkers();
+                
+                // 如果當前正在編輯該筆資料，則重置表單
+                if(document.getElementById('editingId').value == id) {
+                    resetForm();
+                }
+            }
+        }
+
         function clearLogs() { 
             if(confirm("警告：即將清空資料庫！")) { 
                 localStorage.removeItem('tech_db_v3');
@@ -672,3 +694,5 @@
     </script>
 </body>
 </html>
+
+根據上述代碼，我需要修改一項功能，有關及時快訊所保存的資料，可以單一筆刪除，請協助修正，並請勿更改其餘非需求內容的代碼。
