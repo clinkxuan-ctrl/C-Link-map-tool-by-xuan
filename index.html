@@ -17,7 +17,7 @@
         .tech-input { background: rgba(15, 23, 42, 0.8); border: 1px solid #334155; color: #f1f5f9; border-radius: 8px; padding: 10px; font-size: 14px; width: 100%; }
         .tech-input:focus { outline: none; border-color: #818cf8; ring: 1px; ring-color: #818cf8; }
         .stat-value { font-family: 'JetBrains Mono', monospace; font-weight: 700; color: #818cf8; }
-        #map { height: 400px; width: 100%; border-radius: 12px; z-index: 10; border: 1px solid #cbd5e1 brightness(95%) contrast(90%); }
+        #map { height: 600px; width: 100%; border-radius: 12px; z-index: 10; border: 1px solid #cbd5e1 brightness(95%) contrast(90%); }
         .custom-scrollbar::-webkit-scrollbar { width: 5px; height: 5px; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
         label { font-size: 0.75rem; font-weight: 700; color: #94a3b8; text-transform: uppercase; margin-bottom: 0.4rem; display: block; }
@@ -29,34 +29,100 @@
         .mode-btn.active-case { background: #6366f1; color: white; border-color: #818cf8; }
         .mode-btn.active-power { background: #ef4444; color: white; border-color: #f87171; }
         .mode-btn.active-device { background: #eab308; color: white; border-color: #fde047; }
-        .log-item { cursor: pointer; transition: transform 0.2s; }
-        .log-item:hover { transform: translateX(5px); background: rgba(99, 102, 241, 0.1); }
-        .device-unit { border-left: 4px solid #eab308; background: rgba(234, 179, 8, 0.05); padding: 1.5rem; border-radius: 8px; margin-bottom: 1.5rem; position: relative; }
+        .log-item { cursor: pointer; transition: transform 0.2s ease; }
+.log-item:hover {
+    background: rgba(99, 102, 241, 0.1) !important;
+    transform: translateY(-2px); /* 輕微上浮感 */
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
+}        .device-unit { border-left: 4px solid #eab308; background: rgba(234, 179, 8, 0.05); padding: 1.5rem; border-radius: 8px; margin-bottom: 1.5rem; position: relative; }
+
+/* 讓跳轉過程有平滑滾動感 */
+html {
+    scroll-behavior: smooth;
+}
+
+/* 懸浮按鈕容器 */
+.floating-nav { 
+    position: fixed; 
+    bottom: 30px; 
+    right: 30px; 
+    display: flex; 
+    flex-direction: column; 
+    gap: 10px; 
+    z-index: 10000; 
+    align-items: center; 
+}
+
+/* 2. 導覽按鈕組的初始狀態（隱藏） */
+.nav-group { 
+    display: flex; 
+    flex-direction: column; 
+    gap: 10px; 
+    visibility: hidden; 
+    opacity: 0; 
+    transform: translateY(20px); 
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); 
+}
+
+/* 3. 當加上 .active 類別時顯示（展開） */
+.nav-group.active { 
+    visibility: visible; 
+    opacity: 1; 
+    transform: translateY(0); 
+}
+
+/* 4. 按鈕基礎樣式 */
+.nav-btn { 
+    width: 50px; 
+    height: 50px; 
+    border-radius: 50%; 
+    background: #6366f1; 
+    color: white; 
+    display: flex; 
+    align-items: center; 
+    justify-content: center; 
+    text-decoration: none; 
+    box-shadow: 0 4px 15px rgba(0,0,0,0.4); 
+    transition: all 0.2s; 
+    cursor: pointer;
+    border: none;
+}
+
+/* 5. 主開關按鈕樣式 (加個框與旋轉動畫) */
+.menu-toggle { background: #1e293b !important; border: 2px solid #6366f1 !important; }
+.menu-toggle i { transition: transform 0.3s; }
+.menu-toggle.active i { transform: rotate(45deg); } /* 點擊後 + 變成 x */
+
     </style>
+
 </head>
-<body class="p-3 md:p-8">
+<body id="top-page" class="p-3 md:p-8">
 
     <div class="max-w-7xl mx-auto">
         <header class="flex flex-col md:flex-row justify-between items-center mb-8 gap-6 border-b border-slate-700 pb-6 text-center md:text-left">
             <div>
                 <h1 class="text-2xl md:text-3xl font-black bg-clip-text text-transparent bg-gradient-to-r from-indigo-400 to-cyan-400 tracking-wider">
-                    <i class="fa-solid fa-screwdriver-wrench mr-3"></i>設備安裝施工管理 <span class="block md:inline-block text-xs bg-slate-800 text-slate-400 px-2 py-1 rounded mt-2 md:ml-2">OSM 戰情版</span>
+                    <i class="fa-solid fa-screwdriver-wrench mr-3"></i>設備安裝管理紀錄平台 <span class="block md:inline-block text-xs bg-slate-800 text-slate-400 px-2 py-1 rounded mt-2 md:ml-2">OSM 現勘版</span>
                 </h1>
                 <p class="text-slate-400 text-sm mt-1 uppercase tracking-widest">Installation Management System</p>
             </div>
             <div class="flex gap-3 w-full md:w-auto">
                 <button onclick="exportToExcel()" class="flex-grow md:flex-grow-0 bg-indigo-600 hover:bg-indigo-500 text-white px-5 py-3 md:py-2 rounded-lg text-sm font-bold transition flex items-center justify-center">
-                    <i class="fa-solid fa-file-excel mr-2"></i>導出
+                    <i class="fa-solid fa-file-excel mr-2"></i>匯出
                 </button>
                 <label class="flex-grow md:flex-grow-0 bg-slate-700 hover:bg-slate-600 text-white px-5 py-3 md:py-2 rounded-lg text-sm font-bold transition cursor-pointer flex items-center justify-center mb-0">
-                    <i class="fa-solid fa-upload mr-2"></i>導入
+                    <i class="fa-solid fa-upload mr-2"></i>匯入
                     <input type="file" class="hidden" onchange="importFromExcel(event)">
                 </label>
             </div>
         </header>
-
-        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 mb-12">
-            <div class="lg:col-span-8 space-y-6">
+	<div class="max-w-7xl mx-auto px-4 mb-2">
+    		<p class="text-slate-400 text-xs">
+   	     		已累計紀錄 <span id="today-device-count-top" class="text-rose-500 font-bold underline px-1">0</span> 個設備
+    		</p>
+	</div>
+        <div class="flex flex-col gap-8 mb-12">
+            <div class="w-full space-y-6"">
                 <div class="tech-card p-4">
                     <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-4">
                         <h3 class="font-bold text-indigo-300 tracking-widest text-sm"><i class="fa-solid fa-map-location-dot mr-2"></i>OSM 定位系統</h3>
@@ -74,7 +140,7 @@
                 <form id="mainForm" class="space-y-4">
                     <input type="hidden" id="editingId">
                     
-                    <div class="tech-card p-6 border-l-4 border-indigo-500">
+                    <div class="tech-card p-6 border-l-4 border-indigo-500" id=section-A>
                         <h3 class="text-indigo-400 font-bold mb-6 flex items-center">
                             <span class="bg-indigo-500 text-slate-900 w-6 h-6 rounded-full flex items-center justify-center mr-2 text-xs">A</span>
                             基本資訊
@@ -154,19 +220,25 @@
                 </form>
             </div>
 
-            <div class="lg:col-span-4">
-                <div class="tech-card p-6 flex flex-col h-[500px] lg:h-full">
-                    <h3 class="font-bold text-indigo-300 mb-6 flex justify-between items-center tracking-widest">
-                        <span><i class="fa-solid fa-clock-rotate-left mr-2"></i>即時快訊</span>
-                        <button onclick="clearLogs()" class="text-[10px] text-rose-400 border border-rose-900 px-2 py-1 rounded hover:bg-rose-900/20">清空</button>
-                    </h3>
-                    <div id="log-stream" class="space-y-4 flex-grow overflow-y-auto custom-scrollbar pr-2"></div>
                 </div>
             </div>
         </div>
 
-        <section class="mt-12 border-t border-slate-700 pt-10">
-            <div class="flex flex-col md:flex-row items-center gap-4 mb-8">
+<section class="mt-12 border-t border-slate-700 pt-10">
+    <div class="tech-card p-6 mb-8">
+        <h3 class="font-bold text-indigo-300 mb-6 flex justify-between items-center tracking-widest">
+            <span><i class="fa-solid fa-clock-rotate-left mr-2"></i>即時快訊 (最近 15 筆)</span>
+            <button onclick="clearLogs()" class="text-[10px] text-rose-400 border border-rose-900 px-3 py-1 rounded hover:bg-rose-900/20">清空資料庫</button>
+        </h3>
+        <div id="log-stream" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 overflow-y-auto custom-scrollbar max-h-[500px] pr-2">
+            </div>
+    </div>
+
+    <div class="flex flex-col md:flex-row items-center gap-4 mb-8" id="section-dashboard">
+        ...
+    </div>
+</section>
+            <div class="flex flex-col md:flex-row items-center gap-4 mb-8" id="section-dashboard">
                 <div class="flex items-center gap-4">
                     <div class="h-8 w-2 bg-gradient-to-b from-indigo-500 to-cyan-500"></div>
                     <h2 class="text-2xl font-black uppercase tracking-tighter">數據儀表板</h2>
@@ -226,15 +298,53 @@
         let map, currentMarkerLayer;
         let mapMode = 'case'; 
 
+// 在 baseFields 下方新增圖示定義
+const icons = {
+    case: L.divIcon({
+        html: `<i class="fa-solid fa-location-dot" style="color: #00D4FF; font-size: 24px;"></i>`,
+        className: 'custom-div-icon', iconSize: [24, 24], iconAnchor: [12, 24]
+    }),
+    power: L.divIcon({
+        html: `<i class="fa-solid fa-location-dot" style="color: #FF3131; font-size: 24px;"></i>`,
+        className: 'custom-div-icon', iconSize: [24, 24], iconAnchor: [12, 24]
+    }),
+    device: L.divIcon({
+        html: `<i class="fa-solid fa-location-dot" style="color: #F28705; font-size: 24px;"></i>`,
+        className: 'custom-div-icon', iconSize: [24, 24], iconAnchor: [12, 24]
+    })
+};
+
         window.onload = () => {
             const today = new Date().toISOString().split('T')[0];
             document.getElementById('dash-date-filter').value = today;
             updateTime();
             renderLogs();
             updateDashboard();
+            initDatalists(); // 初始化預設值，下拉式選單
             loadDatalists();
             initOSM(); 
         };
+        // 初始化預設的下拉選單內容
+        function initDatalists() {
+            const defaults = {
+                powerType: ["免外線", "外線施工", "免外線-號誌引電", "開挖"],
+                shootType: ["全景", "車牌"],
+                attachPosition: ["路燈桿", "號誌桿-橫", "號誌桿-主", "附壁"],
+                bracketType: ["通用支架", "特殊支架"]
+            };
+
+            for (const [key, values] of Object.entries(defaults)) {
+                let list = JSON.parse(localStorage.getItem(`tech_opt_${key}`)) || [];
+                let changed = false;
+                values.forEach(v => {
+                    if (!list.includes(v)) {
+                        list.push(v);
+                        changed = true;
+                    }
+                });
+                if (changed) localStorage.setItem(`tech_opt_${key}`, JSON.stringify(list));
+            }
+        }
 
         function toggleAccordion(id) {
             document.getElementById(id).classList.toggle('accordion-active');
@@ -256,6 +366,35 @@
 
         function initOSM() {
             map = L.map('map').setView([25.0339, 121.5644], 15);
+// --- 自動定位代碼開始 ---
+if ("geolocation" in navigator) {
+    navigator.geolocation.getCurrentPosition(function(position) {
+        const lat = position.coords.latitude;
+        const lng = position.coords.longitude;
+
+        // 將地圖移動到使用者的座標，縮放層級設為 15 (街道級)
+        map.setView([lat, lng], 100);
+
+        // 在目前位置畫一個藍色圓點標記
+        L.circleMarker([lat, lng], {
+            radius: 8,
+            fillColor: "#3b82f6",
+            color: "#fff",
+            weight: 2,
+            opacity: 1,
+            fillOpacity: 0.8
+        }).addTo(map).bindPopup("您目前的位置").openPopup();
+
+        console.log("定位成功:", lat, lng);
+    }, function(error) {
+        console.warn("無法取得位置，原因:", error.message);
+    }, {
+        enableHighAccuracy: true,
+        timeout: 5000,
+        maximumAge: 0
+    });
+}
+// --- 自動定位代碼結束 ---
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                 attribution: '&copy; OpenStreetMap contributors'
             }).addTo(map);
@@ -400,13 +539,19 @@
         }
 
         function getCurrentLocation() {
-            map.locate({setView: true, maxZoom: 18});
-            map.on('locationfound', function(e) {
-                L.circle(e.latlng, e.accuracy).addTo(map);
-                L.marker(e.latlng).addTo(map).bindPopup("您的目前位置").openPopup();
-            });
-        }
-
+		map.locate({setView: true, maxZoom: 18});
+  		map.on('locationfound', function(e) {
+        	// 自定義樣式
+        	L.circleMarker(e.latlng, {
+            	radius: 8,        // 半徑大小
+            	fillColor: "#3b82f6", // 填滿顏色 (例如藍色)
+            	color: "#fff",      // 邊框顏色 (白色)
+            	weight: 2,          // 邊框粗細
+            	opacity: 1,
+            	fillOpacity: 0.8
+        	}).addTo(map).bindPopup("您的目前位置").openPopup();
+    			});
+		}
         document.getElementById('mainForm').onsubmit = (e) => {
             e.preventDefault();
             const editingId = document.getElementById('editingId').value;
@@ -475,78 +620,117 @@
             });
         };
 
-        function editRecord(id) {
-            const record = records.find(r => r._id == id);
-            if(!record) return;
-            resetForm(); 
-            document.getElementById('editingId').value = id;
-            document.getElementById('submitBtn').innerHTML = `<i class="fa-solid fa-pen-to-square"></i> 更新紀錄 (UPDATE)`;
-            document.getElementById('cancelBtn').classList.remove('hidden');
-            baseFields.forEach(fid => {
-                document.getElementById(fid).value = record[fid] || '';
-            });
-            if(record.devices) {
-                record.devices.forEach(dev => addNewDeviceRow(dev));
-                document.getElementById('section-D').classList.add('accordion-active');
+function editRecord(id) {
+    const record = records.find(r => r._id == id); // 注意：id 比對建議用 == 或轉換型別
+    if (!record) return;
+
+    resetForm(); // 先清空目前的表單與地圖標記
+    document.getElementById('editingId').value = id;
+    document.getElementById('submitBtn').innerHTML = `<i class="fa-solid fa-pen-to-square"></i> 更新紀錄 (UPDATE)`;
+    document.getElementById('cancelBtn').classList.remove('hidden');
+
+    // 1. 還原基本資訊與 Section B, C 欄位
+    baseFields.forEach(fid => {
+        const el = document.getElementById(fid);
+        if (el) el.value = record[fid] || '';
+    });
+
+    // 2. 還原 Section D 設備列
+    if (record.devices && record.devices.length > 0) {
+        record.devices.forEach(dev => addNewDeviceRow(dev));
+        document.getElementById('section-D').classList.add('accordion-active');
+    }
+
+    // 3. 展開有資料的摺疊面板
+    if (record.caseNumber) document.getElementById('section-B').classList.add('accordion-active');
+    if (record.powerAddress) document.getElementById('section-C').classList.add('accordion-active');
+
+    // 4. 地圖重新繪製與權重定位邏輯
+    currentMarkerLayer.clearLayers();
+    let focusCoords = null;
+
+    // 第一優先：機箱
+    if (record.caseLat && record.caseLng) {
+        L.marker([record.caseLat, record.caseLng], { icon: icons.case }).addTo(currentMarkerLayer).bindPopup("機箱位置");
+        focusCoords = [record.caseLat, record.caseLng];
+    }
+
+    // 第二優先：電力
+    if (record.powerLat && record.powerLng) {
+        L.marker([record.powerLat, record.powerLng], { icon: icons.power }).addTo(currentMarkerLayer).bindPopup("電力位置");
+        if (!focusCoords) focusCoords = [record.powerLat, record.powerLng];
+    }
+
+    // 第三優先：設備
+    if (record.devices && record.devices.length > 0) {
+        record.devices.forEach(dev => {
+            if (dev.lat && dev.lng) {
+                L.marker([dev.lat, dev.lng], { icon: icons.device }).addTo(currentMarkerLayer).bindPopup(dev.name || "設備位置");
+                if (!focusCoords) focusCoords = [dev.lat, dev.lng];
             }
-            if(record.caseNumber) document.getElementById('section-B').classList.add('accordion-active');
-            if(record.powerAddress) document.getElementById('section-C').classList.add('accordion-active');
-            refreshMarkers();
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-        }
+        });
+    }
 
-        function updateDashboard() {
-            const targetDate = document.getElementById('dash-date-filter').value;
-            document.getElementById('stat-date-display').innerText = targetDate;
-            const recordedDates = [...new Set(records.map(r => r._date))].sort().reverse();
-            const dateListEl = document.getElementById('list-recorded-dates');
-            dateListEl.innerHTML = recordedDates.map(d => `<option value="${d}">`).join('');
-            const dayRecords = records.filter(r => r._date === targetDate);
-            const newCount = dayRecords.filter(r => r.caseType?.includes('新')).length;
-            const oldCount = dayRecords.filter(r => r.caseType?.match(/既|舊/)).length;
-            const totalDevices = dayRecords.reduce((sum, r) => sum + (r.devices ? r.devices.length : 0), 0);
-            document.getElementById('stat-new-cabinet').innerText = newCount;
-            document.getElementById('stat-old-cabinet').innerText = oldCount;
-            document.getElementById('stat-camera-count').innerText = totalDevices;
-            const matrix = {};
-            dayRecords.forEach(r => {
-                const unitDisplay = `${r.unit || '未定義'} / ${r.subUnit || '未定義'}`;
-                const key = `${unitDisplay}||${r.buildYear || '未定義'}`;
-                if(!matrix[key]) matrix[key] = { newCab: 0, oldCab: 0, cam: 0, unitFull: unitDisplay, year: r.buildYear };
-                if(r.caseType?.includes('新')) matrix[key].newCab++;
-                if(r.caseType?.match(/既|舊/)) matrix[key].oldCab++;
-                matrix[key].cam += (r.devices ? r.devices.length : 0);
-            });
-            const body = document.getElementById('dash-matrix-body');
-            body.innerHTML = Object.values(matrix).length ? Object.values(matrix).map(m => `
-                <tr class="hover:bg-slate-800/50">
-                    <td class="p-4 text-indigo-300 font-bold">${m.unitFull}</td>
-                    <td class="p-4 text-slate-400 font-mono text-xs">${m.year || '---'}</td>
-                    <td class="p-4 text-center text-emerald-400 font-mono">${m.newCab}</td>
-                    <td class="p-4 text-center text-amber-400 font-mono">${m.oldCab}</td>
-                    <td class="p-4 text-center text-cyan-400 font-mono">${m.cam}</td>
-                </tr>
-            `).join('') : `<tr><td colspan="5" class="p-10 text-center text-slate-600 italic">本日暫無數據</td></tr>`;
-        }
+    // 5. 執行平滑跳轉
+    if (focusCoords) {
+        map.flyTo(focusCoords, 18, { animate: true, duration: 1.5 });
+    }
 
+    // 6. 捲動至表單頂端
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+	function updateDashboard() {
+    		const targetDate = document.getElementById('dash-date-filter').value;
+    		document.getElementById('stat-date-display').innerText = targetDate;
+    
+    		// ... 前方的日期處理邏輯保持不變 ...
+    		const recordedDates = [...new Set(records.map(r => r._date))].sort().reverse();
+    		const dateListEl = document.getElementById('list-recorded-dates');
+    		dateListEl.innerHTML = recordedDates.map(d => `<option value="${d}">`).join('');
+    
+    		const dayRecords = records.filter(r => r._date === targetDate);
+    		const newCount = dayRecords.filter(r => r.caseType?.includes('新')).length;
+    		const oldCount = dayRecords.filter(r => r.caseType?.match(/既|舊/)).length;
+    
+    		// 這裡就是 S3 儀表板計算設備總數的地方
+    		const totalDevices = dayRecords.reduce((sum, r) => sum + (r.devices ? r.devices.length : 0), 0);
+    
+    		// 1. 更新原本下方的儀表板數字 (S3)
+    		document.getElementById('stat-new-cabinet').innerText = newCount;
+    		document.getElementById('stat-old-cabinet').innerText = oldCount;
+    		document.getElementById('stat-camera-count').innerText = totalDevices;
+
+    		// 2. 新增：更新上方橫幅的數字 (同步 S3 的數字)
+    		const topCountEl = document.getElementById('today-device-count-top');
+    		if (topCountEl) {
+        	topCountEl.innerText = totalDevices;
+    		}
+
+    		// ... 後續的表格 matrix 繪製邏輯保持不變 ...
+		}
         function renderLogs() {
             const stream = document.getElementById('log-stream');
             stream.innerHTML = records.slice(0, 15).map(r => `
-                <div onclick="editRecord(${r._id})" class="log-item p-4 tech-card bg-slate-900/40 border-l-2 border-indigo-500 mb-2 relative group">
-                    <div class="flex justify-between text-[9px] text-slate-500 font-mono mb-1">
-                        <span>ID: ${r._id}</span>
-                        <span>${r.recordTime}</span>
-                    </div>
-                    <div class="text-sm font-bold text-slate-200">${r.caseNumber || '未編號機箱'} <span class="text-[10px] font-normal text-indigo-400 ml-2">設備數: ${r.devices ? r.devices.length : 0}</span></div>
-                    <div class="text-[10px] text-slate-500 truncate pr-8">${r.caseAddress || '無地址資訊'}</div>
-                    
-                    <button onclick="event.stopPropagation(); deleteRecord(${r._id})" class="absolute top-4 right-4 text-rose-500 hover:text-rose-400 p-9 transition-colors">
-                        <i class="fa-solid fa-trash-can"></i>
-                    </button>
-                </div>
-            `).join('');
-        }
-
+<div onclick="editRecord(${r._id})" class="log-item p-5 tech-card bg-slate-900/40 border border-indigo-500/30 hover:border-indigo-500 mb-0 relative group rounded-xl">
+            <div class="flex justify-between text-[10px] text-slate-500 font-mono mb-3">
+                <span>ID: ${r._id}</span>
+                <span>${r.recordTime}</span>
+            </div>
+            
+            <div class="flex items-baseline mb-2">
+                <div class="text-lg font-black text-slate-100">${r.caseNumber || '未編號機箱'}</div>
+                <div class="text-xs font-normal text-indigo-400 ml-3">設備: ${r.devices ? r.devices.length : 0}</div>
+            </div>
+            
+            <div class="text-xs text-slate-400 truncate pr-10 mb-1">${r.caseAddress || '無地址資訊'}</div>
+            
+            <button onclick="event.stopPropagation(); deleteRecord(${r._id})" class="absolute bottom-5 right-5 text-rose-500/50 hover:text-rose-500 transition-colors p-2">
+                <i class="fa-solid fa-trash-can text-lg"></i>
+            </button>
+        </div>
+    `).join('');
+}
         function saveDatalist(key, val) {
             if(!val) return;
             let list = JSON.parse(localStorage.getItem(`tech_opt_${key}`)) || [];
@@ -691,6 +875,43 @@ function deleteRecord(id) {
             currentMarkerLayer.clearLayers();
             document.querySelectorAll('.accordion-section').forEach(s => s.classList.remove('accordion-active'));
         }
+
+// 新增這段代碼到 <script> 內
+document.addEventListener('DOMContentLoaded', function() {
+    const menuToggle = document.getElementById('menuToggle');
+    const navGroup = document.getElementById('navGroup');
+
+    // 點擊開關：切換顯示/隱藏
+    menuToggle.addEventListener('click', function() {
+        navGroup.classList.toggle('active');
+        this.classList.toggle('active');
+    });
+
+    // 優化體驗：點擊任何一個導覽按鈕後，自動收起選單
+    const navButtons = navGroup.querySelectorAll('.nav-btn');
+    navButtons.forEach(btn => {
+        btn.addEventListener('click', () => {
+            navGroup.classList.remove('active');
+            menuToggle.classList.remove('active');
+        });
+    });
+});
+
     </script>
+<div class="floating-nav">
+    <div class="nav-group" id="navGroup">
+        <a href="#top-page" class="nav-btn" title="最上方"><i class="fa-solid fa-arrow-up"></i></a>
+        <a href="#section-A" class="nav-btn">A</a>
+        <a href="#section-B" class="nav-btn">B</a>
+        <a href="#section-C" class="nav-btn">C</a>
+        <a href="#section-D" class="nav-btn">D</a>
+        <a href="#section-dashboard" class="nav-btn"><i class="fa-solid fa-chart-line"></i></a>
+    </div>
+
+    <button class="nav-btn menu-toggle" id="menuToggle">
+        <i class="fa-solid fa-plus"></i>
+    </button>
+</div>
+
 </body>
 </html>
