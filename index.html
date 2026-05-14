@@ -128,8 +128,6 @@ html {
                         <h3 class="font-bold text-indigo-300 tracking-widest text-sm"><i class="fa-solid fa-map-location-dot mr-2"></i>OSM 定位系統</h3>
                         <div class="flex flex-wrap gap-2 items-center w-full md:w-auto">
                             <span class="text-[10px] text-slate-500 mr-2">模式：</span>
-<button id="btn-mode-line" onclick="startDrawLine()" class="flex-grow md:flex-grow-0 mode-btn">自由畫線</button>
-<button id="btn-done-line" onclick="stopDrawLine()" class="hidden flex-grow md:flex-grow-0 bg-rose-600 text-white px-3 py-1 rounded text-[10px]">結束畫線</button>
                             <button id="btn-mode-case" onclick="setMapMode('case')" class="flex-grow md:flex-grow-0 mode-btn active-case">機箱</button>
                             <button id="btn-mode-power" onclick="setMapMode('power')" class="flex-grow md:flex-grow-0 mode-btn">電力</button>
                             <button id="btn-mode-device" onclick="setMapMode('device')" class="flex-grow md:flex-grow-0 mode-btn">設備</button>
@@ -518,53 +516,22 @@ if ("geolocation" in navigator) {
             refreshMarkers();
         }
 
-		function refreshMarkers() {
-    			currentMarkerLayer.clearLayers();
-    			const colors = { case: '#00D4FF', power: '#FF3131', device: '#F28705' };
-    
-    			// 取得機箱座標
-    			const cLat = document.getElementById(`caseLat`).value;
-    			const cLng = document.getElementById(`caseLng`).value;
-    			
-    			// 1. 標註機箱與電力點
-    			['case', 'power'].forEach(type => {
-        			const lat = document.getElementById(`${type}Lat`).value;
-        			const lng = document.getElementById(`${type}Lng`).value;
-        			if(lat && lng) addPoint(lat, lng, colors[type], type === 'case' ? '機箱' : '電力');
-    			});
+        function refreshMarkers() {
+            currentMarkerLayer.clearLayers();
+            const colors = { case: '#00D4FF', power: '#FF3131', device: '#F28705' };
+            ['case', 'power'].forEach(type => {
+                const lat = document.getElementById(`${type}Lat`).value;
+                const lng = document.getElementById(`${type}Lng`).value;
+                if(lat && lng) addPoint(lat, lng, colors[type], type === 'case' ? '機箱' : '電力');
+            });
+            document.querySelectorAll('.device-unit').forEach(unit => {
+                const lat = unit.querySelector('.d-lat').value;
+                const lng = unit.querySelector('.d-lng').value;
+                const name = unit.querySelector('.d-name').value || '設備';
+                if(lat && lng) addPoint(lat, lng, colors.device, name);
+            });
+        }
 
-    			// 2. 如果機箱和電力都有座標，畫一條紅色的虛線連接它們
-    			const pLat = document.getElementById(`powerLat`).value;
-    			const pLng = document.getElementById(`powerLng`).value;
-    			if(cLat && cLng && pLat && pLng) {
-        			L.polyline([[cLat, cLng], [pLat, pLng]], {
-            			color: '#FF3131', 
-            			weight: 2, 
-            			dashArray: '5, 10', // 虛線效果
-            			opacity: 0.7
-        			}).addTo(currentMarkerLayer);
-    			}
-
-    			// 3. 標註設備點，並畫線連接到機箱
-    			document.querySelectorAll('.device-unit').forEach(unit => {
-        			const dLat = unit.querySelector('.d-lat').value;
-        			const dLng = unit.querySelector('.d-lng').value;
-       			 const name = unit.querySelector('.d-name').value || '設備';
-        
-        			if(dLat && dLng) {
-           			 addPoint(dLat, dLng, colors.device, name);
-            
-           			 // 如果有機箱座標，則畫一條線連接設備與機箱
-            			if(cLat && cLng) {
-               			 L.polyline([[cLat, cLng], [dLat, dLng]], {
-                    			color: '#F28705', 
-            			        weight: 2, 
-          			          opacity: 0.5
-           			     }).addTo(currentMarkerLayer);
-    		        }
-   		     }
-		    });
-}
         function addPoint(lat, lng, color, title) {
             const icon = L.divIcon({
                 html: `<i class="fa-solid fa-location-dot" style="color: ${color}; font-size: 24px;"></i>`,
@@ -784,82 +751,6 @@ function editRecord(id) {
                 if(dl) dl.innerHTML = list.map(i => `<option value="${i}">`).join('');
             });
         }
-
-let linePoints = [];      // 儲存連續點位的陣列
-let currentPolyline = null; // 畫線中的線條物件
-let lineMarkers = [];     // 畫線時產生的暫時點位標記
-
-// 啟動畫線模式
-function startDrawLine() {
-    setMapMode('line'); // 自定義一個 mode 叫 line
-    linePoints = [];
-    if(currentPolyline) map.removeLayer(currentPolyline);
-    lineMarkers.forEach(m => map.removeLayer(m));
-    lineMarkers = [];
-    
-    document.getElementById('btn-mode-line').classList.add('active-case'); // 借用 CSS 顏色
-    document.getElementById('btn-done-line').classList.remove('hidden');
-    alert("畫線模式已啟動：請在地圖上連續點擊，結束請按「結束畫線」。");
-}
-
-// 停止畫線模式並儲存
-function stopDrawLine() {
-    mapMode = 'case'; // 恢復預設模式
-    document.getElementById('btn-done-line').classList.add('hidden');
-    document.getElementById('btn-mode-line').classList.remove('active-case');
-    
-    if (linePoints.length > 0) {
-        // 將座標轉換為字串存入備註欄，方便匯出
-        const pathStr = linePoints.map(p => `[${p[0]},${p[1]}]`).join(' -> ');
-        document.getElementById('caseRemark').value = "路徑紀錄：" + pathStr;
-        alert("路徑已紀錄至機箱備註欄。");
-    }
-}
-
-// 修改原本的 initOSM 內的 map.on('click') 邏輯
-// 請找到 map.on('click', function(e) { ... }) 並在最前面加入這段：
-
-map.on('click', function(e) {
-    const lat = e.latlng.lat.toFixed(6);
-    const lng = e.latlng.lng.toFixed(6);
-
-    if (mapMode === 'line') {
-        // 1. 紀錄點位
-        linePoints.push([lat, lng]);
-
-        // 2. 畫出線條
-        if (currentPolyline) {
-            currentPolyline.addLatLng(e.latlng);
-        } else {
-            currentPolyline = L.polyline(linePoints, {
-                color: '#f87171', // 玫瑰紅
-                weight: 4,
-                opacity: 0.8,
-                dashArray: '5, 10' // 虛線，更像施工路徑
-            }).addTo(map);
-        }
-
-        // 3. 在點擊處加個小圓點方便視覺確認
-        const dot = L.circleMarker(e.latlng, {
-            radius: 3,
-            fillColor: "#f87171",
-            color: "#fff",
-            weight: 1,
-            fillOpacity: 1
-        }).addTo(map);
-        lineMarkers.push(dot);
-        
-        return; // 畫線模式下，不執行下方的地址查詢等邏輯
-    }
-
-    // ... 這裡保留您原本的 case / power / device 邏輯 ...
-});
-
-
-
-
-
-
 
         function exportToExcel() {
             const headers1 = ["A基本資訊", "", "", "B機箱位置資訊", "", "", "", "", "", "", "", "C電力系統增訊", "", "", "", "", "D設備掛載資訊", "", "", "", "", "", "", "", "", "", ""];
