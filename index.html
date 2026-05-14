@@ -330,7 +330,8 @@ const icons = {
                 powerType: ["免外線", "外線施工", "免外線-號誌引電", "開挖"],
                 shootType: ["全景", "車牌"],
                 attachPosition: ["路燈桿", "號誌桿-橫", "號誌桿-主", "附壁"],
-                bracketType: ["通用支架", "特殊支架"]
+                bracketType: ["通用支架", "特殊支架"],
+		deviceType: ["攝影機", "噪音計", "告示牌"]
             };
 
             for (const [key, values] of Object.entries(defaults)) {
@@ -460,7 +461,7 @@ if ("geolocation" in navigator) {
                     <button type="button" onclick="removeDeviceRow('${rowId}')" class="text-rose-400 hover:text-rose-300 text-[10px] uppercase font-bold">移除此設備</button>
                 </div>
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div><label>設備類型</label><input list="list-deviceType" class="tech-input d-type" value="${data.type || ''}"></div>
+		    <div><label>設備類型</label><input list="list-deviceType" class="tech-input d-deviceType" value="${data.deviceType || ''}"></div>
                     <div><label>設備編號</label><input class="tech-input d-number" value="${data.number || ''}"></div>
                     <div><label>設備名稱</label><input class="tech-input d-name" value="${data.name || ''}"></div>
                     <div class="md:col-span-2">
