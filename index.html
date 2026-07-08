@@ -555,74 +555,73 @@ if ("geolocation" in navigator) {
         	}).addTo(map).bindPopup("您的目前位置").openPopup();
     			});
 		}
-        document.getElementById('mainForm').onsubmit = (e) => {
-            e.preventDefault();
-            const editingId = document.getElementById('editingId').value;
-            const scriptURL = 'https://script.google.com/macros/s/AKfycbxwiR6N03WdzqhbXpQWBNS8oalrPp9KQzcgft1if0I0Vok8FId3bmgZKM50FfZHcz2b/exec';
-            const submitBtn = document.getElementById('submitBtn');
-            
-            const data = {};
-            baseFields.forEach(id => {
-                data[id] = document.getElementById(id).value;
-                if(['unit','subUnit','buildYear','caseType'].includes(id)) saveDatalist(id, data[id]);
-            });
+document.getElementById('mainForm').onsubmit = (e) => {
+    e.preventDefault();
+    const editingId = document.getElementById('editingId').value;
+    const scriptURL = 'https://script.google.com/macros/s/AKfycbxwiR6N03WdzqhbXpQWBNS8oalrPp9KQzcgft1if0I0Vok8FId3bmgZKM50FfZHcz2b/exec';
+    const submitBtn = document.getElementById('submitBtn');
 
-            data.devices = [];
-            document.querySelectorAll('.device-unit').forEach(unit => {
-                data.devices.push({
-                    type: unit.querySelector('.d-type').value,
-                    number: unit.querySelector('.d-number').value,
-                    name: unit.querySelector('.d-name').value,
-                    address: unit.querySelector('.d-address').value,
-                    direction: unit.querySelector('.d-direction').value,
-                    lat: unit.querySelector('.d-lat').value,
-                    lng: unit.querySelector('.d-lng').value,
-                    shootType: unit.querySelector('.d-shootType').value,
-                    attachPosition: unit.querySelector('.d-attachPosition').value,
-                    bracketType: unit.querySelector('.d-bracketType').value,
-                    remark: unit.querySelector('.d-remark').value
-                });
-            });
+    const data = {};
+    baseFields.forEach(id => {
+        data[id] = document.getElementById(id).value;
+        if(['unit','subUnit','buildYear','caseType'].includes(id)) saveDatalist(id, data[id]);
+    });
+    
+    data.devices = [];
+    document.querySelectorAll('.device-unit').forEach(unit => {
+        // 【已修正】將網頁 class 與後端 Apps Script 的欄位名稱進行正確對接
+        data.devices.push({
+            type: unit.querySelector('.d-deviceType').value, // 修正類別選擇器
+            id: unit.querySelector('.d-number').value,       // 將 number 改為 id 以便與 Apps Script 對接
+            name: unit.querySelector('.d-name').value,
+            address: unit.querySelector('.d-address').value,
+            direction: unit.querySelector('.d-direction').value,
+            lat: unit.querySelector('.d-lat').value,
+            lng: unit.querySelector('.d-lng').value,
+            subType: unit.querySelector('.d-shootType').value, // 將 shootType 改為 subType 以便與 Apps Script 對接
+            attach: unit.querySelector('.d-attachPosition').value, // 確保與後端對接
+            bracket: unit.querySelector('.d-bracketType').value,   // 確保與後端對接
+            remark: unit.querySelector('.d-remark').value
+        });
+    });
 
-            // 1. 本地儲存邏輯 (LocalStorage)
-            if(editingId) {
-                const idx = records.findIndex(r => r._id == editingId);
-                data._id = parseInt(editingId);
-                data._date = records[idx]._date;
-                records[idx] = data;
-            } else {
-                data._id = Date.now();
-                data._date = new Date().toISOString().split('T')[0];
-                records.unshift(data);
-            }
-            localStorage.setItem('tech_db_v3', JSON.stringify(records));
+    // 1. 本地儲存邏輯 (LocalStorage)
+    if(editingId) {
+        const idx = records.findIndex(r => r._id == editingId);
+        data._id = parseInt(editingId);
+        data._date = records[idx]._date;
+        records[idx] = data;
+    } else {
+        data._id = Date.now();
+        data._date = new Date().toISOString().split('T')[0];
+        records.unshift(data);
+    }
+    localStorage.setItem('tech_db_v3', JSON.stringify(records));
 
-            // 2. 同步到 Google 試算表邏輯
-            submitBtn.disabled = true;
-            submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> 同步中...';
+    // 2. 同步到 Google 試算表邏輯
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> 同步中...';
 
-            // 將對象轉換為 FormData 格式發送
-            const formData = new FormData();
-            for (const key in data) {
-                if (key === 'devices') {
-                    formData.append(key, JSON.stringify(data[key])); // 設備陣列轉為 JSON 字串
-                } else {
-                    formData.append(key, data[key]);
-                }
-            }
-
-            fetch(scriptURL, { method: 'POST', body: formData })
-            .then(response => {
-                alert("施工紀錄已成功同步至本地與 Google 試算表！\n共包含 " + data.devices.length + " 個設備點。");
-                location.reload();
-            })
-            .catch(error => {
-                console.error('Error!', error.message);
-                alert("本地儲存成功，但同步至 Google 試算表時發生錯誤。\n請檢查網路連線或 Script 權限。");
-                location.reload();
-            });
-        };
-
+    const formData = new FormData();
+    for (const key in data) {
+        if (key === 'devices') {
+            formData.append(key, JSON.stringify(data[key]));
+        } else {
+            formData.append(key, data[key]);
+        }
+    }
+    
+    fetch(scriptURL, { method: 'POST', body: formData })
+    .then(response => {
+        alert("施工紀錄已成功同步至本地與 Google 試算表！\n共包含 " + data.devices.length + " 個設備點。");
+        location.reload();
+    })
+    .catch(error => {
+        console.error('Error!', error.message);
+        alert("本地儲存成功，但同步至 Google 試算表時發生錯誤。\n請檢查網路連線或 Script 權限。");
+        location.reload();
+    });
+};
 function editRecord(id) {
     const record = records.find(r => r._id == id); // 注意：id 比對建議用 == 或轉換型別
     if (!record) return;
