@@ -52,7 +52,7 @@
         <header class="flex flex-col md:flex-row justify-between items-center mb-8 gap-6 border-b border-slate-700 pb-6 text-center md:text-left">
             <div>
                 <h1 class="text-2xl md:text-3xl font-black bg-clip-text text-transparent bg-gradient-to-r from-indigo-400 to-cyan-400 tracking-wider">
-                    <i class="fa-solid fa-screwdriver-wrench mr-3"></i>設備安裝管理紀錄平台 <span class="block md:inline-block text-xs bg-slate-800 text-slate-400 px-2 py-1 rounded mt-2 md:ml-2">OSM 現勘版 V6.21</span>
+                    <i class="fa-solid fa-screwdriver-wrench mr-3"></i>設備安裝管理紀錄平台 <span class="block md:inline-block text-xs bg-slate-800 text-slate-400 px-2 py-1 rounded mt-2 md:ml-2">OSM 現勘版 V8</span>
                 </h1>
                 <p class="text-slate-400 text-sm mt-1 uppercase tracking-widest">Installation Management System</p>
             </div>
@@ -91,6 +91,10 @@
 
                 <form id="mainForm" class="space-y-4">
                     <input type="hidden" id="editingId">
+                    <input type="hidden" id="caseDistrict">
+                    <input type="hidden" id="caseVillage">
+                    <input type="hidden" id="powerDistrict">
+                    <input type="hidden" id="powerVillage">
                     
                     <!-- Section A -->
                     <div class="tech-card p-6 border-l-4 border-indigo-500" id="section-A">
@@ -100,7 +104,7 @@
                         </h3>
                         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                             <div><label>紀錄時間</label><input id="recordTime" name="recordTime" readonly class="tech-input bg-slate-900 border-none font-mono text-indigo-400"></div>
-                            <div><label>單位*</label><input list="list-unit" id="unit" name="unit" class="tech-input" required placeholder="例如：板橋分局"></div>
+                            <div><label>單位**</label><input list="list-unit" id="unit" name="unit" class="tech-input" required placeholder="例如：板橋分局"></div>
                             <div><label>子單位</label><input list="list-subUnit" id="subUnit" name="subUnit" class="tech-input" placeholder="轄區或派出所"></div>
                         </div>
                     </div>
@@ -117,9 +121,9 @@
                         <div class="accordion-content">
                             <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                                 <div><label>建置年度/期別</label><input list="list-buildYear" id="buildYear" name="buildYear" class="tech-input"></div>
-                                <div><label>機箱類型</label><input list="list-caseType" id="caseType" name="caseType" class="tech-input"></div>
-                                <div><label>收容編號</label><input id="caseNumber" name="caseNumber" class="tech-input"></div>
-                                <div class="md:col-span-2"><label>機箱安裝位置</label><input id="caseAddress" name="caseAddress" class="tech-input"></div>
+                                <div><label>機箱類型*</label><input list="list-caseType" id="caseType" name="caseType" class="tech-input"></div>
+                                <div><label>收容編號**</label><input id="caseNumber" name="caseNumber" class="tech-input"></div>
+                                <div class="md:col-span-2"><label>機箱安裝位置 (不含省份與行政區)</label><input id="caseAddress" name="caseAddress" class="tech-input"></div>
                                 <div><label>路口名稱</label><input id="intersection" name="intersection" class="tech-input"></div>
                                 <div><label>緯度 (機箱)</label><input id="caseLat" name="caseLat" class="tech-input font-mono" onchange="onCaseCoordChange()"></div>
                                 <div><label>經度 (機箱)</label><input id="caseLng" name="caseLng" class="tech-input font-mono" onchange="onCaseCoordChange()"></div>
@@ -141,14 +145,14 @@
                             <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                                 <div class="md:col-span-2">
                                     <div class="flex justify-between items-center mb-1">
-                                        <label class="mb-0">包燈位置</label>
+                                        <label class="mb-0">包燈位置 (不含省份與行政區)</label>
                                         <span id="power-distance-display" class="text-xs font-mono text-slate-400">距離機箱：-- 公尺</span>
                                     </div>
                                     <input id="powerAddress" name="powerAddress" class="tech-input">
                                 </div>
-                                <div><label>供電方式</label><input list="list-powerType" id="powerType" name="powerType" class="tech-input"></div>
-                                <div><label>緯度 (電力)</label><input id="powerLat" name="powerLat" class="tech-input font-mono" onchange="updatePowerDistance()"></div>
-                                <div><label>經度 (電力)</label><input id="powerLng" name="powerLng" class="tech-input font-mono" onchange="updatePowerDistance()"></div>
+                                <div><label>供電方式*</label><input list="list-powerType" id="powerType" name="powerType" class="tech-input"></div>
+                                <div><label>緯度 (電力)</label><input id="powerLat" name="powerLat" class="tech-input font-mono" onchange="onPowerCoordChange()"></div>
+                                <div><label>經度 (電力)</label><input id="powerLng" name="powerLng" class="tech-input font-mono" onchange="onPowerCoordChange()"></div>
                                 <div><label>電力備註</label><input id="powerRemark" name="powerRemark" class="tech-input"></div>
                             </div>
                         </div>
@@ -184,7 +188,7 @@
         </div>
 
         <section class="mt-12 border-t border-slate-700 pt-10">
-            <div class="tech-card p-6 mb-8">
+            <div class="tech-card p-6 mb-8" id="section-logs">
                 <h3 class="font-bold text-indigo-300 mb-6 flex justify-between items-center tracking-widest">
                     <span><i class="fa-solid fa-clock-rotate-left mr-2"></i>即時快訊 (最近 15 筆)</span>
                     <button onclick="clearLogs()" class="text-[10px] text-rose-400 border border-rose-900 px-3 py-1 rounded hover:bg-rose-900/20">清空資料庫</button>
@@ -248,7 +252,7 @@
 
     <script>
         let records = JSON.parse(localStorage.getItem('tech_db_v3')) || [];
-        const baseFields = ['recordTime', 'unit', 'subUnit', 'buildYear', 'caseType', 'caseNumber', 'caseAddress', 'intersection', 'caseLat', 'caseLng', 'caseRemark', 'powerAddress', 'powerType', 'powerLat', 'powerLng', 'powerRemark'];
+        const baseFields = ['recordTime', 'unit', 'subUnit', 'buildYear', 'caseType', 'caseNumber', 'caseAddress', 'intersection', 'caseLat', 'caseLng', 'caseRemark', 'powerAddress', 'powerType', 'powerLat', 'powerLng', 'powerRemark', 'caseDistrict', 'caseVillage', 'powerDistrict', 'powerVillage'];
         let map, currentMarkerLayer;
         let mapMode = 'case'; 
 
@@ -318,6 +322,39 @@
             document.getElementById(`btn-mode-${mode}`).classList.add(`active-${mode}`);
         }
 
+        function stripAdminDistrict(addr) {
+            if (!addr) return "";
+            return addr.replace(/^.*?(?:縣|市)(?:.*?(?:區|市|鎮|鄉))?/, '').trim();
+        }
+
+        function reverseGeocode(lat, lng, callback) {
+            fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&accept-language=zh-TW`)
+            .then(res => res.json())
+            .then(data => {
+                let district = "";
+                let village = "";
+                let formattedAddr = "";
+
+                if (data && data.address) {
+                    const addr = data.address;
+                    district = addr.suburb || addr.township || addr.district || "";
+                    village = addr.village || addr.neighbourhood || addr.suburb || "";
+                    
+                    const road = addr.road || "";
+                    let houseNum = addr.house_number || "";
+                    if (houseNum && !houseNum.includes("號")) houseNum += "號";
+                    
+                    formattedAddr = `${road}${houseNum}`.replace(/, /g, "").trim();
+                    if (!formattedAddr) formattedAddr = stripAdminDistrict(data.display_name);
+                }
+                callback({ district, village, formattedAddr });
+            })
+            .catch(err => {
+                console.error("Geocoding failed:", err);
+                callback({ district: "", village: "", formattedAddr: "" });
+            });
+        }
+
         function initOSM() {
             map = L.map('map').setView([25.00986024321098, 121.45841915645617], 19);
 
@@ -356,19 +393,14 @@
                 const lng = e.latlng.lng.toFixed(6);
 
                 if(mapMode === 'device') {
-                    fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&accept-language=zh-TW`)
-                    .then(res => res.json())
-                    .then(data => {
-                        let formattedAddr = "";
-                        if(data && data.address) {
-                            const addr = data.address;
-                            const district = addr.suburb || addr.township || addr.district || "";
-                            const road = addr.road || "";
-                            let houseNum = addr.house_number || "";
-                            if (houseNum && !houseNum.includes("號")) houseNum += "號";
-                            formattedAddr = `${district}${road}${houseNum}`.replace(/, /g, "");
-                        }
-                        addNewDeviceRow({ lat: lat, lng: lng, address: formattedAddr || data.display_name });
+                    reverseGeocode(lat, lng, (info) => {
+                        addNewDeviceRow({ 
+                            lat: lat, 
+                            lng: lng, 
+                            address: stripAdminDistrict(info.formattedAddr),
+                            district: info.district,
+                            village: info.village
+                        });
                         document.getElementById('section-D').classList.add('accordion-active');
                         refreshMarkers();
                     });
@@ -381,27 +413,18 @@
                     document.getElementById(`${prefix}Lng`).value = lng;
 
                     if(prefix === 'case') onCaseCoordChange();
-                    if(prefix === 'power') updatePowerDistance();
+                    if(prefix === 'power') onPowerCoordChange();
 
-                    fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&accept-language=zh-TW`)
-                    .then(res => res.json())
-                    .then(data => {
-                        if(data && data.address) {
-                            const addr = data.address;
-                            const district = addr.suburb || addr.township || addr.district || "";
-                            const road = addr.road || "";
-                            let houseNum = addr.house_number || "";
-                            if (houseNum && !houseNum.includes("號")) houseNum += "號";
-                            const formattedAddr = `${district}${road}${houseNum}`.replace(/, /g, "");
-                            document.getElementById(`${prefix}Address`).value = formattedAddr || data.display_name;
-                        }
+                    reverseGeocode(lat, lng, (info) => {
+                        document.getElementById(`${prefix}Address`).value = stripAdminDistrict(info.formattedAddr);
+                        document.getElementById(`${prefix}District`).value = info.district;
+                        document.getElementById(`${prefix}Village`).value = info.village;
                     });
                     refreshMarkers();
                 }
             });
         }
 
-        /* --- 步行距離計算核心邏輯 (OSRM API) --- */
         async function calcWalkDistance(lat1, lng1, lat2, lng2) {
             if (!lat1 || !lng1 || !lat2 || !lng2) return null;
             try {
@@ -409,7 +432,7 @@
                 const res = await fetch(url);
                 const data = await res.json();
                 if (data.code === 'Ok' && data.routes && data.routes.length > 0) {
-                    return Math.round(data.routes[0].distance); // 取得公尺整數
+                    return Math.round(data.routes[0].distance);
                 }
             } catch (err) {
                 console.error("OSRM 路由計算失敗:", err);
@@ -481,10 +504,56 @@
         }
 
         function onCaseCoordChange() {
+            const lat = document.getElementById('caseLat').value;
+            const lng = document.getElementById('caseLng').value;
+            if (lat && lng) {
+                reverseGeocode(lat, lng, (info) => {
+                    document.getElementById('caseDistrict').value = info.district;
+                    document.getElementById('caseVillage').value = info.village;
+                    if (!document.getElementById('caseAddress').value) {
+                        document.getElementById('caseAddress').value = stripAdminDistrict(info.formattedAddr);
+                    }
+                });
+            }
             updatePowerDistance();
             document.querySelectorAll('.device-unit').forEach(unit => {
                 updateDeviceDistance(unit.id);
             });
+            refreshMarkers();
+        }
+
+        function onPowerCoordChange() {
+            const lat = document.getElementById('powerLat').value;
+            const lng = document.getElementById('powerLng').value;
+            if (lat && lng) {
+                reverseGeocode(lat, lng, (info) => {
+                    document.getElementById('powerDistrict').value = info.district;
+                    document.getElementById('powerVillage').value = info.village;
+                    if (!document.getElementById('powerAddress').value) {
+                        document.getElementById('powerAddress').value = stripAdminDistrict(info.formattedAddr);
+                    }
+                });
+            }
+            updatePowerDistance();
+            refreshMarkers();
+        }
+
+        function onDeviceCoordChange(rowId) {
+            const row = document.getElementById(rowId);
+            if (!row) return;
+            const lat = row.querySelector('.d-lat').value;
+            const lng = row.querySelector('.d-lng').value;
+
+            if (lat && lng) {
+                reverseGeocode(lat, lng, (info) => {
+                    row.querySelector('.d-district').value = info.district;
+                    row.querySelector('.d-village').value = info.village;
+                    if (!row.querySelector('.d-address').value) {
+                        row.querySelector('.d-address').value = stripAdminDistrict(info.formattedAddr);
+                    }
+                });
+            }
+            updateDeviceDistance(rowId);
             refreshMarkers();
         }
 
@@ -495,6 +564,8 @@
             div.className = "device-unit tech-card";
             div.id = rowId;
             div.innerHTML = `
+                <input type="hidden" class="d-district" value="${data.district || ''}">
+                <input type="hidden" class="d-village" value="${data.village || ''}">
                 <div class="flex justify-between items-center mb-4 border-b border-slate-700 pb-2">
                     <div class="flex items-center gap-3">
                         <span class="text-cyan-400 font-bold text-xs"><i class="fa-solid fa-camera mr-2"></i>設備項目</span>
@@ -503,13 +574,13 @@
                     <button type="button" onclick="removeDeviceRow('${rowId}')" class="text-rose-400 hover:text-rose-300 text-[10px] uppercase font-bold">移除此設備</button>
                 </div>
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div><label>設備類型</label><input list="list-deviceType" class="tech-input d-deviceType" value="${data.deviceType || data.type || ''}"></div>
+                    <div><label>設備類型*</label><input list="list-deviceType" class="tech-input d-deviceType" value="${data.deviceType || data.type || ''}"></div>
                     <div><label>設備編號</label><input class="tech-input d-number" value="${data.number || data.id || ''}"></div>
-                    <div><label>設備名稱</label><input class="tech-input d-name" value="${data.name || ''}"></div>
+                    <div><label>設備名稱*</label><input class="tech-input d-name" value="${data.name || ''}"></div>
                     <div class="md:col-span-2">
-                        <label>設備安裝位置</label>
+                        <label>設備安裝位置 (不含省份與行政區)</label>
                         <div class="flex gap-2">
-                            <input class="tech-input d-address flex-grow" value="${data.address || ''}">
+                            <input class="tech-input d-address flex-grow" value="${stripAdminDistrict(data.address || '')}">
                             <button type="button" onclick="syncCaseToDev('${rowId}')" class="bg-slate-700 hover:bg-slate-600 px-3 rounded text-[10px] whitespace-nowrap border border-slate-500">同機箱</button>
                         </div>
                     </div>
@@ -534,9 +605,9 @@
                             <option value="北北西" ${data.direction === '北北西' ? 'selected' : ''}>北北西</option>
                         </select>
                     </div>
-                    <div><label>緯度 (設備)</label><input class="tech-input d-lat font-mono" value="${data.lat || ''}" onchange="updateDeviceDistance('${rowId}'); refreshMarkers();"></div>
-                    <div><label>經度 (設備)</label><input class="tech-input d-lng font-mono" value="${data.lng || ''}" onchange="updateDeviceDistance('${rowId}'); refreshMarkers();"></div>
-                    <div><label>拍攝類型</label><input list="list-shootType" class="tech-input d-shootType" value="${data.shootType || data.subType || ''}"></div>
+                    <div><label>緯度 (設備)</label><input class="tech-input d-lat font-mono" value="${data.lat || ''}" onchange="onDeviceCoordChange('${rowId}')"></div>
+                    <div><label>經度 (設備)</label><input class="tech-input d-lng font-mono" value="${data.lng || ''}" onchange="onDeviceCoordChange('${rowId}')"></div>
+                    <div><label>拍攝類型*</label><input list="list-shootType" class="tech-input d-shootType" value="${data.shootType || data.subType || ''}"></div>
                     <div><label>附掛位置</label><input list="list-attachPosition" class="tech-input d-attachPosition" value="${data.attachPosition || data.attach || ''}"></div>
                     <div><label>支架類型</label><input list="list-bracketType" class="tech-input d-bracketType" value="${data.bracketType || data.bracket || ''}"></div>
                     <div class="md:col-span-3"><label>設備備註</label><input class="tech-input d-remark" value="${data.remark || ''}"></div>
@@ -561,9 +632,11 @@
 
         function syncCaseToDev(rowId) {
             const row = document.getElementById(rowId);
-            row.querySelector('.d-address').value = document.getElementById('caseAddress').value;
+            row.querySelector('.d-address').value = stripAdminDistrict(document.getElementById('caseAddress').value);
             row.querySelector('.d-lat').value = document.getElementById('caseLat').value;
             row.querySelector('.d-lng').value = document.getElementById('caseLng').value;
+            row.querySelector('.d-district').value = document.getElementById('caseDistrict').value;
+            row.querySelector('.d-village').value = document.getElementById('caseVillage').value;
             updateDeviceDistance(rowId);
             refreshMarkers();
         }
@@ -609,16 +682,25 @@
         document.getElementById('mainForm').onsubmit = (e) => {
             e.preventDefault();
             const editingId = document.getElementById('editingId').value;
-            const scriptURL = 'https://script.google.com/macros/s/AKfycbxwiR6N03WdzqhbXpQWBNS8oalrPp9KQzcgft1if0I0Vok8FId3bmgZKM50FfZHcz2b/exec';
+            const scriptURL = 'https://script.google.com/macros/s/AKfycbxSILoYx_F92l-4V6YJxvtjr-BLGhnjFnlNm1SwAh-AUzKvelIfeXn3ARoofsjSBOAl/exec';
             const submitBtn = document.getElementById('submitBtn');
 
             const data = {};
             baseFields.forEach(id => {
-                data[id] = document.getElementById(id).value;
+                const el = document.getElementById(id);
+                if (el) data[id] = el.value;
                 if(['unit','subUnit','buildYear','caseType'].includes(id)) saveDatalist(id, data[id]);
             });
+
+            // 確保所有地址皆除去了省份與行政區
+            data.caseAddress = stripAdminDistrict(data.caseAddress);
+            data.powerAddress = stripAdminDistrict(data.powerAddress);
+
+            const now = new Date();
+            const nowTimeString = now.getFullYear() + '/' + (now.getMonth()+1) + '/' + now.getDate() + ' ' + now.toLocaleTimeString('zh-TW', {hour12:false});
+            data.recordTime = nowTimeString;
+            document.getElementById('recordTime').value = nowTimeString;
             
-            // 寫入 AB 欄距離資料
             const powerDisp = document.getElementById('power-distance-display');
             data.caseToPowerDist = powerDisp.dataset.dist || "";
 
@@ -626,11 +708,13 @@
             document.querySelectorAll('.device-unit').forEach(unit => {
                 const devDisp = unit.querySelector('.dev-distance-display');
                 data.devices.push({
+                    district: unit.querySelector('.d-district')?.value || "",
+                    village: unit.querySelector('.d-village')?.value || "",
                     type: unit.querySelector('.d-deviceType').value,
                     id: unit.querySelector('.d-number').value,
                     number: unit.querySelector('.d-number').value,
                     name: unit.querySelector('.d-name').value,
-                    address: unit.querySelector('.d-address').value,
+                    address: stripAdminDistrict(unit.querySelector('.d-address').value),
                     direction: unit.querySelector('.d-direction').value,
                     lat: unit.querySelector('.d-lat').value,
                     lng: unit.querySelector('.d-lng').value,
@@ -641,7 +725,6 @@
                     bracket: unit.querySelector('.d-bracketType').value,
                     bracketType: unit.querySelector('.d-bracketType').value,
                     remark: unit.querySelector('.d-remark').value,
-                    // 寫入 AC 欄距離資料
                     caseToDevDist: devDisp ? (devDisp.dataset.dist || "") : ""
                 });
             });
@@ -649,7 +732,7 @@
             if(editingId) {
                 const idx = records.findIndex(r => r._id == editingId);
                 data._id = parseInt(editingId);
-                data._date = records[idx]._date;
+                data._date = new Date().toISOString().split('T')[0];
                 records[idx] = data;
             } else {
                 data._id = Date.now();
@@ -661,10 +744,22 @@
             submitBtn.disabled = true;
             submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> 同步中...';
 
+            // 打包傳送到 Google 試算表的資料，並過濾掉行政區與里別
             const formData = new FormData();
+            
+            // 排除不要寫入 Google 試算表的欄位
+            const excludeKeys = ['caseDistrict', 'caseVillage', 'powerDistrict', 'powerVillage'];
+
             for (const key in data) {
+                if (excludeKeys.includes(key)) continue;
+
                 if (key === 'devices') {
-                    formData.append(key, JSON.stringify(data[key]));
+                    // 深拷貝設備陣列並過濾 district 與 village
+                    const filteredDevices = data.devices.map(dev => {
+                        const { district, village, ...rest } = dev;
+                        return rest;
+                    });
+                    formData.append(key, JSON.stringify(filteredDevices));
                 } else {
                     formData.append(key, data[key]);
                 }
@@ -779,7 +874,7 @@
                         <div class="text-xs font-normal text-indigo-400 ml-3">設備: ${r.devices ? r.devices.length : 0}</div>
                     </div>
                     
-                    <div class="text-xs text-slate-400 truncate pr-10 mb-1">${r.caseAddress || '無地址資訊'}</div>
+                    <div class="text-xs text-slate-400 truncate pr-10 mb-1">${stripAdminDistrict(r.caseAddress) || '無地址資訊'}</div>
                     
                     <button onclick="event.stopPropagation(); deleteRecord(${r._id})" class="absolute bottom-5 right-5 text-rose-500/50 hover:text-rose-500 transition-colors p-2">
                         <i class="fa-solid fa-trash-can text-lg"></i>
@@ -807,55 +902,92 @@
             });
         }
 
-function exportToExcel() {
-    const headers1 = ["A基本資訊", "", "", "B機箱位置資訊", "", "", "", "", "", "", "", "C電力系統增訊", "", "", "", "", "D設備掛載資訊", "", "", "", "", "", "", "", "", "", ""];
-    const headers2 = ["紀錄時間", "單位", "子單位", "建置年度/期別", "機箱類型", "收容編號", "機箱安裝位置 ", "路口名稱", "緯度(機箱)", "經度(機箱)", "機箱備註", "包燈位置", "供電方式", "緯度(電力)", "經度(電力)", "電力備註", "設備類型", "設備編號", "設備名稱", "設備安裝位置", "拍攝方位", "緯度(設備)", "經度(設備)", "拍攝類型", "附掛位置", "支架類型", "設備備註"];
-    const exportRows = [headers1, headers2];
-
-    records.forEach(r => {
-        if (r.devices && r.devices.length > 0) {
-            r.devices.forEach((d, index) => {
-                // 利用 index === 0 判斷：只有第一行寫入 D、E 欄，第二個設備開始寫入空字串 ""
-                const baseRow = [
-                    r.recordTime || "", 
-                    r.unit || "", 
-                    r.subUnit || "",
-                    r.buildYear || "",
-                    index === 0 ? (r.caseType || "") : "",   // E欄
-                    r.caseNumber || "", 
-                    r.caseAddress || "", 
-                    r.intersection || "", 
-                    r.caseLat || "", 
-                    r.caseLng || "", 
-                    r.caseRemark || "",
-                    r.powerAddress || "", 
-                    r.powerType || "", 
-                    r.powerLat || "", 
-                    r.powerLng || "", 
-                    r.powerRemark || ""
-                ];
-
-                const devRow = [
-                    d.type || "", d.number || "", d.name || "", d.address || "", d.direction || "", d.lat || "", d.lng || "", d.shootType || "", d.attachPosition || "", d.bracketType || "", d.remark || ""
-                ];
-                exportRows.push([...baseRow, ...devRow]);
-            });
-        } else {
-            const baseRow = [
-                r.recordTime || "", r.unit || "", r.subUnit || "",
-                r.buildYear || "", r.caseType || "", r.caseNumber || "", r.caseAddress || "", r.intersection || "", r.caseLat || "", r.caseLng || "", r.caseRemark || "",
-                r.powerAddress || "", r.powerType || "", r.powerLat || "", r.powerLng || "", r.powerRemark || ""
+        function exportToExcel() {
+            const headers1 = [
+                "A基本資訊", "", "", 
+                "B機箱位置資訊", "", "", "", "", "", "", "", "", "", 
+                "C電力系統資訊", "", "", "", "", 
+                "D設備掛載資訊", "", "", "", "", "", "", "", "", "", "", "", "", 
+                "E距離參考數據", ""
             ];
-            const emptyDevRow = Array(11).fill("");
-            exportRows.push([...baseRow, ...emptyDevRow]);
-        }
-    });
+            
+            const headers2 = [
+                "紀錄時間", "單位", "子單位", 
+                "行政區(機箱)", "里別(機箱)", "建置年度/期別", "機箱類型", "收容編號", "機箱安裝位置", "路口名稱", "緯度(機箱)", "經度(機箱)", "機箱備註", 
+                "包燈位置", "供電方式", "緯度(電力)", "經度(電力)", "電力備註", 
+                "行政區(設備)", "里別(設備)", "設備類型", "設備編號", "設備名稱", "設備安裝位置", "拍攝方位", "緯度(設備)", "經度(設備)", "拍攝類型", "附掛位置", "支架類型", "設備備註", 
+                "機箱 ↔ 包燈", "機箱 ↔ 設備"
+            ];
+            
+            const exportRows = [headers1, headers2];
 
-    const ws = XLSX.utils.aoa_to_sheet(exportRows);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "MasterData");
-    XLSX.writeFile(wb, `EQUIP_REPORT_${new Date().getTime()}.xlsx`);
-}
+            records.forEach(r => {
+                if (r.devices && r.devices.length > 0) {
+                    r.devices.forEach((d, index) => {
+                        const baseRow = [
+                            r.recordTime || "", 
+                            r.unit || "", 
+                            r.subUnit || "",
+                            r.caseDistrict || "",
+                            r.caseVillage || "",
+                            index === 0 ? (r.buildYear || "") : "",
+                            index === 0 ? (r.caseType || "") : "",
+                            r.caseNumber || "", 
+                            stripAdminDistrict(r.caseAddress), 
+                            r.intersection || "", 
+                            r.caseLat || "", 
+                            r.caseLng || "", 
+                            r.caseRemark || "",
+                            stripAdminDistrict(r.powerAddress), 
+                            r.powerType || "", 
+                            r.powerLat || "", 
+                            r.powerLng || "", 
+                            r.powerRemark || ""
+                        ];
+
+                        const devRow = [
+                            d.district || "",
+                            d.village || "",
+                            d.type || d.deviceType || "", 
+                            d.number || d.id || "", 
+                            d.name || "", 
+                            stripAdminDistrict(d.address), 
+                            d.direction || "", 
+                            d.lat || "", 
+                            d.lng || "", 
+                            d.shootType || d.subType || "", 
+                            d.attachPosition || d.attach || "", 
+                            d.bracketType || d.bracket || "", 
+                            d.remark || ""
+                        ];
+
+                        const distRow = [
+                            r.caseToPowerDist ? r.caseToPowerDist + "m" : "",
+                            d.caseToDevDist ? d.caseToDevDist + "m" : ""
+                        ];
+
+                        exportRows.push([...baseRow, ...devRow, ...distRow]);
+                    });
+                } else {
+                    const baseRow = [
+                        r.recordTime || "", r.unit || "", r.subUnit || "",
+                        r.caseDistrict || "", r.caseVillage || "",
+                        r.buildYear || "", r.caseType || "", r.caseNumber || "", stripAdminDistrict(r.caseAddress), r.intersection || "", r.caseLat || "", r.caseLng || "", r.caseRemark || "",
+                        stripAdminDistrict(r.powerAddress), r.powerType || "", r.powerLat || "", r.powerLng || "", r.powerRemark || ""
+                    ];
+                    const emptyDevRow = Array(13).fill("");
+                    const distRow = [r.caseToPowerDist ? r.caseToPowerDist + "m" : "", ""];
+                    
+                    exportRows.push([...baseRow, ...emptyDevRow, ...distRow]);
+                }
+            });
+
+            const ws = XLSX.utils.aoa_to_sheet(exportRows);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "MasterData");
+            XLSX.writeFile(wb, `EQUIP_REPORT_${new Date().getTime()}.xlsx`);
+        }
+
         function importFromExcel(event) {
             const file = event.target.files[0];
             const reader = new FileReader();
@@ -875,15 +1007,17 @@ function exportToExcel() {
                             recordTime: row["紀錄時間"] || "",
                             unit: row["單位"] || "",
                             subUnit: row["子單位"] || "",
+                            caseDistrict: row["行政區(機箱)"] || "",
+                            caseVillage: row["里別(機箱)"] || "",
                             buildYear: row["建置年度/期別"] || "",
                             caseType: row["機箱類型"] || "",
                             caseNumber: row["收容編號"] || "",
-                            caseAddress: row["機箱安裝位置 "] || "",
+                            caseAddress: stripAdminDistrict(row["機箱安裝位置"] || row["機箱安裝位置 "] || ""),
                             intersection: row["路口名稱"] || "",
                             caseLat: row["緯度(機箱)"] || "",
                             caseLng: row["經度(機箱)"] || "",
                             caseRemark: row["機箱備註"] || "",
-                            powerAddress: row["包燈位置"] || "",
+                            powerAddress: stripAdminDistrict(row["包燈位置"] || ""),
                             powerType: row["供電方式"] || "",
                             powerLat: row["緯度(電力)"] || "",
                             powerLng: row["經度(電力)"] || "",
@@ -895,10 +1029,12 @@ function exportToExcel() {
 
                     if (row["設備類型"]) {
                         importedRecordsMap.get(key).devices.push({
+                            district: row["行政區(設備)"] || "",
+                            village: row["里別(設備)"] || "",
                             type: row["設備類型"] || "",
                             number: row["設備編號"] || "",
                             name: row["設備名稱"] || "",
-                            address: row["設備安裝位置"] || "",
+                            address: stripAdminDistrict(row["設備安裝位置"] || ""),
                             direction: row["拍攝方位"] || "",
                             lat: row["緯度(設備)"] || "",
                             lng: row["經度(設備)"] || "",
@@ -943,6 +1079,10 @@ function exportToExcel() {
             document.getElementById('mainForm').reset();
             document.getElementById('device-container').innerHTML = '';
             document.getElementById('editingId').value = '';
+            document.getElementById('caseDistrict').value = '';
+            document.getElementById('caseVillage').value = '';
+            document.getElementById('powerDistrict').value = '';
+            document.getElementById('powerVillage').value = '';
             document.getElementById('submitBtn').innerHTML = `<i class="fa-solid fa-floppy-disk"></i> 保存安裝記錄 (SYNC)`;
             document.getElementById('cancelBtn').classList.add('hidden');
             
@@ -977,11 +1117,12 @@ function exportToExcel() {
     <div class="floating-nav">
         <div class="nav-group" id="navGroup">
             <a href="#top-page" class="nav-btn" title="最上方"><i class="fa-solid fa-arrow-up"></i></a>
-            <a href="#section-A" class="nav-btn">A</a>
-            <a href="#section-B" class="nav-btn">B</a>
-            <a href="#section-C" class="nav-btn">C</a>
-            <a href="#section-D" class="nav-btn">D</a>
-            <a href="#section-dashboard" class="nav-btn"><i class="fa-solid fa-chart-line"></i></a>
+            <a href="#section-A" class="nav-btn" title="A 基本資訊">A</a>
+            <a href="#section-B" class="nav-btn" title="B 機箱位置資訊">B</a>
+            <a href="#section-C" class="nav-btn" title="C 電力系統資訊">C</a>
+            <a href="#section-D" class="nav-btn" title="D 設備掛載資訊">D</a>
+            <a href="#section-logs" class="nav-btn" title="即時快訊"><i class="fa-solid fa-clock-rotate-left"></i></a>
+            <a href="#section-dashboard" class="nav-btn" title="數據儀表板"><i class="fa-solid fa-chart-line"></i></a>
         </div>
 
         <button class="nav-btn menu-toggle" id="menuToggle">
